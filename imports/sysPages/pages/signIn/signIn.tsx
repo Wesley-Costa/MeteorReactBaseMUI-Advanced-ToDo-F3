@@ -25,6 +25,7 @@ const SignInPage: React.FC = () => {
 				type: 'error',
 				title: 'Erro ao tentar logar',
 				message: 'Email ou senha inválidos',
+				showCloseButton: true,
 			});
 		});
 ;	};
@@ -42,7 +43,7 @@ const SignInPage: React.FC = () => {
 					<Typography variant="inherit" color={(theme) => theme.palette.sysText?.tertiary}>
 						{'{'}
 					</Typography>
-					Boilerplate
+					To-Do List Advanced
 					<Typography variant="inherit" color="sysText.tertiary">
 						{'}'}
 					</Typography>
