@@ -74,7 +74,7 @@ export const ResetPassword = (props: IDefaultContainerProps) => {
 					<Typography variant="inherit" color={(theme) => theme.palette.sysText?.tertiary}>
 						{'{'}
 					</Typography>
-					Boilerplate
+					To-Do List Advanced
 					<Typography variant="inherit" color="sysText.tertiary">
 						{'}'}
 					</Typography>

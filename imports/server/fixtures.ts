@@ -2,8 +2,8 @@ import { Accounts } from 'meteor/accounts-base';
 import { Meteor } from 'meteor/meteor';
 import { userprofileServerApi } from '../modules/userprofile/api/userProfileServerApi';
 
-async function createDefautUser() {
-	// if (Meteor.isDevelopment && Meteor.users.find().count() === 0) {
+async function createDefaultUser() {
+
 	const count = await Meteor.users.find({}).countAsync();
 	if ((await Meteor.users.find({}).countAsync()) === 0) {
 		let createdUserId = '';
@@ -40,5 +40,5 @@ async function createDefautUser() {
 Meteor.startup(async () => {
 	console.log('fixtures Meteor.startup');
 	// Add default admin account
-	await createDefautUser();
+	await createDefaultUser();
 });
