@@ -1,6 +1,6 @@
 import { ElementType } from 'react';
 import { styled } from '@mui/material/styles';
-import { Box, BoxProps, Button, ButtonProps, Typography, TypographyProps, Stack, StackProps, ListItem, ListItemProps, 
+import { Box, BoxProps, Button, ButtonProps, Typography, TypographyProps, Stack, StackProps, ListItem, ListItemProps,
 	ListItemIcon, ListItemIconProps, ListItemButton, ListItemButtonProps, Dialog, DialogProps } from '@mui/material';
 import DoubleArrowIcon from '@mui/icons-material/DoubleArrow';
 import { SysSectionPaddingXY } from '/imports/ui/layoutComponents/sysLayoutComponents';
@@ -27,7 +27,6 @@ interface IHomeStyles {
 	TaskActions: ElementType<BoxProps>;
 	ActionButton: ElementType<ButtonProps>;
 	StateContainer: ElementType<BoxProps>;
-	LoadingContainer: ElementType<BoxProps>;
 	TaskModal: ElementType<DialogProps>;
 	TaskModalHeader: ElementType<BoxProps>;
 	TaskModalTitleRow: ElementType<BoxProps>;
@@ -231,15 +230,6 @@ const HomeStyles: IHomeStyles = {
 		display: 'flex',
 		alignItems: 'center',
 		justifyContent: 'center',
-		paddingTop: 32,
-		paddingBottom: 32
-	})),
-
-	LoadingContainer: styled(Box)(() => ({
-		display: 'flex',
-		alignItems: 'center',
-		justifyContent: 'center',
-		gap: 16,
 		paddingTop: 32,
 		paddingBottom: 32
 	})),

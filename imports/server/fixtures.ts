@@ -5,7 +5,7 @@ import { userprofileServerApi } from '../modules/userprofile/api/userProfileServ
 async function createDefaultUser() {
 
 	const count = await Meteor.users.find({}).countAsync();
-	if ((await Meteor.users.find({}).countAsync()) === 0) {
+	if (count === 0) {
 		let createdUserId = '';
 		createdUserId = await Accounts.createUserAsync({
 			username: 'Administrador',

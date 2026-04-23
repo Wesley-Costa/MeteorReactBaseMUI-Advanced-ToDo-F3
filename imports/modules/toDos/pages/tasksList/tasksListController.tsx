@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useContext } from 'react';
+import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTracker } from 'meteor/react-meteor-data';
 import { Meteor } from 'meteor/meteor';
@@ -10,8 +10,12 @@ import TasksListView from './tasksListView';
 
 interface ITasksListControllerContext {
 	tasks: ITask[];
+	openTasks: ITask[];
+	completedTasks: ITask[];
 	loading: boolean;
 	actionLoadingId: string | null;
+	searchText: string;
+	onSearchChange: (value: string) => void;
 	onAddTaskClick: () => void;
 	onTaskClick: (id: string) => void;
 	onDeleteTask: (task: ITask) => void;
@@ -26,14 +30,24 @@ const TasksListController = () => {
 	const navigate = useNavigate();
 	const { showNotification } = useContext<IAppLayoutContext>(AppLayoutContext);
 	const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+	const [searchText, setSearchText] = useState<string>('');
 
-	const { loading, tasks } = useTracker(() => {
-		const subHandle = tasksApi.subscribe('list');
-		const isReady = !!subHandle && subHandle.ready();
+	const { loading, openTasks, completedTasks } = useTracker(() => {
+		const openSub = tasksApi.subscribe('list', searchText, { status: 'open' });
+		const completedSub = tasksApi.subscribe('list', searchText, { status: 'completed' });
+		const isReady = !!openSub && openSub.ready() && !!completedSub && completedSub.ready();
+
 		return {
 			loading: !isReady,
-			tasks: isReady ? tasksApi.find({}).fetch() : []
+			openTasks: isReady ? tasksApi.find({ status: 'open' }).fetch() : [],
+			completedTasks: isReady ? tasksApi.find({ status: 'completed' }).fetch() : []
 		};
+	}, [searchText]);
+
+	const tasks = useMemo(() => [...openTasks, ...completedTasks], [openTasks, completedTasks]);
+
+	const onSearchChange = useCallback((value: string) => {
+		setSearchText(value);
 	}, []);
 
 	const onAddTaskClick = useCallback(() => {
@@ -50,6 +64,7 @@ const TasksListController = () => {
 	const onDeleteTask = useCallback(
 		(task: ITask) => {
 			if (!task?._id) return;
+
 			if (task.createdBy && task.createdBy !== Meteor.userId()) {
 				showNotification({
 					type: 'error',
@@ -59,6 +74,7 @@ const TasksListController = () => {
 				});
 				return;
 			}
+
 			setActionLoadingId(task._id);
 			tasksApi.remove({ _id: task._id }, (e: IMeteorError, r: any) => {
 				setActionLoadingId(null);
@@ -107,14 +123,30 @@ const TasksListController = () => {
 	const providerValues: ITasksListControllerContext = useMemo(
 		() => ({
 			tasks,
+			openTasks,
+			completedTasks,
 			loading,
 			actionLoadingId,
+			searchText,
+			onSearchChange,
 			onAddTaskClick,
 			onTaskClick,
 			onDeleteTask,
 			onTaskCheckboxClick
 		}),
-		[tasks, loading, actionLoadingId, onAddTaskClick, onTaskClick, onDeleteTask, onTaskCheckboxClick]
+		[
+			tasks,
+			openTasks,
+			completedTasks,
+			loading,
+			actionLoadingId,
+			searchText,
+			onSearchChange,
+			onAddTaskClick,
+			onTaskClick,
+			onDeleteTask,
+			onTaskCheckboxClick
+		]
 	);
 
 	return (

@@ -1,11 +1,12 @@
 import { ElementType } from 'react';
 import { styled } from '@mui/material/styles';
-import { Box, BoxProps, Typography, TypographyProps, Button, ButtonProps } from '@mui/material';
+import { Box, BoxProps, Typography, TypographyProps, Button, ButtonProps, Chip, ChipProps } from '@mui/material';
 
 interface ITasksListStyles {
 	PageWrapper: ElementType<BoxProps>;
 	PageHeader: ElementType<BoxProps>;
 	Container: ElementType<BoxProps>;
+	SearchWrapper: ElementType<BoxProps>;
 	TaskSection: ElementType<BoxProps>;
 	TaskItem: ElementType<BoxProps & { selected?: boolean }>;
 	TaskCheckbox: ElementType<any>;
@@ -23,6 +24,10 @@ interface ITasksListStyles {
 	DetailFieldLabel: ElementType<TypographyProps>;
 	DetailCreatorText: ElementType<TypographyProps>;
 	WelcomeSection: ElementType<BoxProps>;
+	SectionHeader: ElementType<BoxProps>;
+	SectionTitle: ElementType<TypographyProps>;
+	SectionCount: ElementType<ChipProps>;
+	EmptySection: ElementType<TypographyProps>;
 }
 
 const TasksListStyles: ITasksListStyles = {
@@ -55,11 +60,55 @@ const TasksListStyles: ITasksListStyles = {
 		margin: '0 auto'
 	})),
 
+	SearchWrapper: styled(Box)(({ theme }) => ({
+		width: '100%',
+		marginBottom: theme.spacing(1),
+		'& .MuiFormControl-root': {
+			margin: 0
+		}
+	})),
+
 	TaskSection: styled(Box)(({ theme }) => ({
 		display: 'flex',
 		flexDirection: 'column',
 		width: '100%',
 		marginTop: theme.spacing(3)
+	})),
+
+	SectionHeader: styled(Box)(({ theme }) => ({
+		display: 'flex',
+		alignItems: 'center',
+		gap: theme.spacing(1),
+		padding: theme.spacing(1, 0.5),
+		cursor: 'pointer',
+		borderRadius: theme.shape.borderRadius,
+		userSelect: 'none',
+		'&:hover': {
+			backgroundColor: theme.palette.action.hover
+		}
+	})),
+
+	SectionTitle: styled(Typography)(({ theme }) => ({
+		fontWeight: 600,
+		color: theme.palette.text.primary,
+		flexGrow: 1
+	})),
+
+	SectionCount: styled(Chip)(({ theme }) => ({
+		height: 22,
+		fontSize: 12,
+		fontWeight: 600,
+		backgroundColor: theme.palette.action.selected,
+		color: theme.palette.text.secondary,
+		'& .MuiChip-label': {
+			padding: theme.spacing(0, 1)
+		}
+	})),
+
+	EmptySection: styled(Typography)(({ theme }) => ({
+		color: theme.palette.text.secondary,
+		padding: theme.spacing(2, 1),
+		fontSize: 14
 	})),
 
 	TaskItem: styled(Box)<{ selected?: boolean }>(({ theme, selected }) => ({

@@ -2,17 +2,19 @@ import React, { useCallback, useContext, useState, Fragment } from 'react';
 import { Meteor } from 'meteor/meteor';
 import { useTracker } from 'meteor/react-meteor-data';
 import { useNavigate } from 'react-router-dom';
-import { Typography, List, Divider, CircularProgress, DialogTitle, DialogContent, ListItemText, Tooltip } from '@mui/material';
+import { Typography, List, Divider, DialogTitle, DialogContent, ListItemText, Tooltip } from '@mui/material';
 import AppLayoutContext, { IAppLayoutContext } from '/imports/app/appLayoutProvider/appLayoutContext';
 import { tasksApi } from '/imports/modules/toDos/api/tasksApi';
 import { ITask } from '/imports/modules/toDos/api/tasksSch';
 import HomeStyles from './homeStyle';
 import SysIcon from '/imports/ui/components/sysIcon/sysIcon';
+import { SysLoading } from '/imports/ui/components/sysLoading/sysLoading';
+import { SysButton } from '/imports/ui/components/SimpleFormFields/SysButton/SysButton';
 
 const {
 	Container, Header, HeaderTitle, HeaderSubtitle, SectionWrapper, SectionLabel, SectionLabelTitle, ListContainer,
 	RemainingListContainer, TaskListItem, TaskListItemIcon, TaskListItemButton, TaskSecondaryStack, TaskTitle,
-	TaskCreatorText, TaskCreatorUnderline, TaskCheckbox, TaskActions, ActionButton, StateContainer, LoadingContainer,
+	TaskCreatorText, TaskCreatorUnderline, TaskCheckbox, TaskActions, ActionButton, StateContainer,
 	TaskModal, TaskModalHeader, TaskModalTitleRow, TaskModalTitle, TaskModalStatusChip, TaskModalMeta, TaskModalSection,
 	TaskModalSectionLabel, TaskModalDescriptionBody, TaskModalDescriptionText, TaskModalInfoRow, TaskModalInfoLabel,
 	TaskModalInfoAvatar, TaskModalInfoValue, TaskModalActions, FooterSection, GoToTasksButton, GoToTasksIcon
@@ -232,10 +234,11 @@ const HomePage: React.FC = () => {
 	const renderListContent = () => {
 		if (loading) {
 			return (
-				<LoadingContainer>
-					<CircularProgress size={24} />
-					<Typography variant="body1">Carregando tarefas...</Typography>
-				</LoadingContainer>
+				<SysLoading
+					label="Carregando tarefas..."
+					size="small"
+					sxMap={{ container: { py: 4 } }}
+				/>
 			);
 		}
 		if (!mostRecentTask) {
@@ -315,13 +318,17 @@ const HomePage: React.FC = () => {
 
 				<TaskModalActions>
 					{isOwner && (
-						<ActionButton variant="outlined" size="small" onClick={() => handleEditTask(selectedTask)}>
+						<SysButton
+							variant="outlined"
+							size="small"
+							startIcon={<SysIcon name="edit" />}
+							onClick={() => handleEditTask(selectedTask)}>
 							Editar
-						</ActionButton>
+						</SysButton>
 					)}
-					<ActionButton size="small" onClick={handleCloseModal}>
+					<SysButton size="small" onClick={handleCloseModal}>
 						Fechar
-					</ActionButton>
+					</SysButton>
 				</TaskModalActions>
 			</TaskModal>
 		);
