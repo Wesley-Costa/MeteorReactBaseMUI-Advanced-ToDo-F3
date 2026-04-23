@@ -27,7 +27,7 @@ const TasksEditController = () => {
 	const { showNotification } = useContext<IAppLayoutContext>(AppLayoutContext);
 
 	const { document, loading } = useTracker(() => {
-		const subHandle = id ? tasksApi.subscribe('detail', { _id: id }) : null;
+		const subHandle = id ? tasksApi.subscribe('edit', { _id: id }) : null;
 		const document = id && subHandle?.ready() ? tasksApi.findOne({ _id: id }) : {};
 		return {
 			document: (document as ITask) ?? ({ _id: id } as ITask),

@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { Typography, Button, IconButton } from '@mui/material';
+import { Typography, IconButton } from '@mui/material';
 import { TasksCreateControllerContext } from './tasksCreateController';
 import TasksCreateStyles from './tasksCreateStyles';
 import SysIcon from '../../../../ui/components/sysIcon/sysIcon';
@@ -8,6 +8,7 @@ import SysTextField from '../../../../ui/components/sysFormFields/sysTextField/s
 import { SysSelectField } from '../../../../ui/components/sysFormFields/sysSelectField/sysSelectField';
 import SysFormButton from '../../../../ui/components/sysFormFields/sysFormButton/sysFormButton';
 import SysSwitch from '../../../../ui/components/sysFormFields/sysSwitch/sysSwitch';
+import { SysButton } from '../../../../ui/components/SimpleFormFields/SysButton/SysButton';
 
 const { Container, Header, Body, FormColumn, InlineRow, Footer } = TasksCreateStyles;
 
@@ -43,9 +44,12 @@ const TasksCreateView = () => {
 				</Body>
 
 				<Footer>
-					<Button variant="outlined" startIcon={<SysIcon name="close" />} onClick={controller.closePage}>
+					<SysButton
+						variant="outlined"
+						startIcon={<SysIcon name="close" />}
+						onClick={controller.closePage}>
 						Cancelar
-					</Button>
+					</SysButton>
 					<SysFormButton>Salvar</SysFormButton>
 				</Footer>
 			</SysForm>

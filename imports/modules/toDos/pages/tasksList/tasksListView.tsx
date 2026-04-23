@@ -1,20 +1,28 @@
 import React, { useContext, useState } from 'react';
-import { Typography, Divider, Button, IconButton, Chip, Stack, Tooltip } from '@mui/material';
+import { Typography, Divider, IconButton, Chip, Stack, Tooltip } from '@mui/material';
 import { Meteor } from 'meteor/meteor';
 import { TasksListControllerContext } from './tasksListController';
 import TasksListStyles from './tasksListStyles';
 import SysIcon from '../../../../ui/components/sysIcon/sysIcon';
+import SysTextField from '../../../../ui/components/sysFormFields/sysTextField/sysTextField';
+import { SysFab } from '../../../../ui/components/sysFab/sysFab';
+import { SysLoading } from '../../../../ui/components/sysLoading/sysLoading';
+import { SysButton } from '../../../../ui/components/SimpleFormFields/SysButton/SysButton';
+import { ITask } from '../../api/tasksSch';
 
 const {
-	PageWrapper, PageHeader, Container, TaskSection, TaskItem, TaskCheckbox, TaskInfo, TaskTitle, TaskCreator, ActionButton,
-	DetailPanel, DetailPanelHeader, DetailPanelContent, DetailPanelFooter, DetailTitleRow, DetailStatusDot, DetailField,
-	DetailFieldLabel, DetailCreatorText
+	PageWrapper, PageHeader, Container, TaskSection, TaskItem, TaskCheckbox, DetailPanelContent, 
+	TaskInfo, TaskTitle, TaskCreator, ActionButton, DetailPanel, DetailPanelHeader, DetailPanelFooter, 
+	DetailTitleRow, DetailStatusDot, DetailField, DetailFieldLabel, DetailCreatorText, SearchWrapper, 
+	SectionHeader, SectionTitle, SectionCount, EmptySection
 } = TasksListStyles;
 
 const TasksListView = () => {
 	const controller = useContext(TasksListControllerContext);
-
 	const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+	const [openCollapsed, setOpenCollapsed] = useState(false);
+	const [completedCollapsed, setCompletedCollapsed] = useState(false);
+
 	const selectedTask = controller.tasks.find((t) => t._id === selectedTaskId) ?? null;
 	const isDetailPanelOpen = !!selectedTask;
 
@@ -24,6 +32,50 @@ const TasksListView = () => {
 
 	const handleCloseDetailPanel = () => setSelectedTaskId(null);
 
+	const renderTaskItem = (task: ITask) => (
+		<TaskItem key={task._id} selected={selectedTaskId === task._id} onClick={() => handleOpenTask(task._id!)}>
+			<Tooltip
+				title={task.status === 'completed' ? 'Marcar como pendente' : 'Marcar como concluída'}
+				placement="top">
+				<TaskCheckbox
+					completed={task.status === 'completed'}
+					onClick={(e: React.MouseEvent) => {
+						e.stopPropagation();
+						controller.onTaskCheckboxClick(e, task._id!);
+					}}
+				/>
+			</Tooltip>
+
+			<TaskInfo>
+				<TaskTitle completed={task.status === 'completed'}>{task.title}</TaskTitle>
+				<TaskCreator>
+					Criada por: {task.createdBy === Meteor.userId() ? 'Você' : task.authorName || 'Desconhecido'}
+				</TaskCreator>
+			</TaskInfo>
+
+			<Stack direction="row" spacing={0.5}>
+				<Tooltip title="Editar">
+					<ActionButton
+						onClick={(e: React.MouseEvent) => {
+							e.stopPropagation();
+							controller.onTaskClick(task._id!);
+						}}>
+						<SysIcon name="edit" />
+					</ActionButton>
+				</Tooltip>
+				<Tooltip title="Excluir">
+					<ActionButton
+						onClick={(e: React.MouseEvent) => {
+							e.stopPropagation();
+							controller.onDeleteTask(task);
+						}}>
+						<SysIcon name="delete" />
+					</ActionButton>
+				</Tooltip>
+			</Stack>
+		</TaskItem>
+	);
+
 	return (
 		<PageWrapper>
 			<Container>
@@ -31,66 +83,88 @@ const TasksListView = () => {
 					<Typography variant="h5" fontWeight={600}>
 						Tarefas
 					</Typography>
-					<Button variant="contained" startIcon={<SysIcon name="add" />} onClick={() => controller.onAddTaskClick()}>
-						Nova Tarefa
-					</Button>
+
+					<SysFab
+						variant="extended"
+						startIcon={<SysIcon name="add" />}
+						text="Nova Tarefa"
+						onClick={controller.onAddTaskClick}
+					/>
 				</PageHeader>
 
-				<TaskSection>
-					{controller.loading ? (
-						<Typography variant="body1" color="text.secondary">
-							Carregando tarefas…
-						</Typography>
-					) : controller.tasks.length === 0 ? (
-						<Typography variant="body1" color="text.secondary">
-							Nenhuma tarefa encontrada.
-						</Typography>
-					) : (
-						controller.tasks.map((task) => (
-							<TaskItem key={task._id} selected={selectedTaskId === task._id} onClick={() => handleOpenTask(task._id!)}>
-								<Tooltip
-									title={task.status === 'completed' ? 'Marcar como pendente' : 'Marcar como concluída'}
-									placement="top">
-									<TaskCheckbox
-										completed={task.status === 'completed'}
-										onClick={(e: React.MouseEvent) => {
-											e.stopPropagation();
-											controller.onTaskCheckboxClick(e, task._id!);
-										}}
-									/>
+				<SearchWrapper>
+					<SysTextField
+						name="taskSearch"
+						placeholder="Pesquisar tarefas por título ou descrição…"
+						value={controller.searchText}
+						onChange={(e) => controller.onSearchChange(e.target.value)}
+						size="small"
+						fullWidth
+						startAdornment={<SysIcon name="search" />}
+						endAdornment={
+							controller.searchText ? (
+								<Tooltip title="Limpar pesquisa">
+									<IconButton
+										size="small"
+										onClick={() => controller.onSearchChange('')}
+										aria-label="Limpar pesquisa">
+										<SysIcon name="close" />
+									</IconButton>
 								</Tooltip>
+							) : null
+						}
+					/>
+				</SearchWrapper>
 
-								<TaskInfo>
-									<TaskTitle completed={task.status === 'completed'}>{task.title}</TaskTitle>
-									<TaskCreator>
-										Criada por: {task.createdBy === Meteor.userId() ? 'Você' : task.authorName || 'Desconhecido'}
-									</TaskCreator>
-								</TaskInfo>
+				{controller.loading ? (
+					<SysLoading
+						label="Carregando tarefas…"
+						size="medium"
+						sxMap={{ container: { mt: 6 } }}
+					/>
+				) : (
+					<TaskSection>
+						<SectionHeader onClick={() => setOpenCollapsed((v) => !v)}>
+							<SysIcon name={openCollapsed ? 'chevronRight' : 'expandMore'} />
+							<SectionTitle variant="subtitle1">Não Concluídas</SectionTitle>
+							<SectionCount label={controller.openTasks.length} size="small" />
+						</SectionHeader>
 
-								<Stack direction="row" spacing={0.5}>
-									<Tooltip title="Editar">
-										<ActionButton
-											onClick={(e: React.MouseEvent) => {
-												e.stopPropagation();
-												controller.onTaskClick(task._id!);
-											}}>
-											<SysIcon name="edit" />
-										</ActionButton>
-									</Tooltip>
-									<Tooltip title="Excluir">
-										<ActionButton
-											onClick={(e: React.MouseEvent) => {
-												e.stopPropagation();
-												controller.onDeleteTask(task);
-											}}>
-											<SysIcon name="delete" />
-										</ActionButton>
-									</Tooltip>
-								</Stack>
-							</TaskItem>
-						))
-					)}
-				</TaskSection>
+						{!openCollapsed && (
+							<>
+								{controller.openTasks.length === 0 ? (
+									<EmptySection variant="body2">
+										{controller.searchText
+											? `Nenhuma tarefa pendente encontrada para "${controller.searchText}".`
+											: 'Nenhuma tarefa pendente.'}
+									</EmptySection>
+								) : (
+									controller.openTasks.map(renderTaskItem)
+								)}
+							</>
+						)}
+
+						<SectionHeader onClick={() => setCompletedCollapsed((v) => !v)} sx={{ mt: 2 }}>
+							<SysIcon name={completedCollapsed ? 'chevronRight' : 'expandMore'} />
+							<SectionTitle variant="subtitle1">Concluídas</SectionTitle>
+							<SectionCount label={controller.completedTasks.length} size="small" />
+						</SectionHeader>
+
+						{!completedCollapsed && (
+							<>
+								{controller.completedTasks.length === 0 ? (
+									<EmptySection variant="body2">
+										{controller.searchText
+											? `Nenhuma tarefa concluída encontrada para "${controller.searchText}".`
+											: 'Nenhuma tarefa concluída.'}
+									</EmptySection>
+								) : (
+									controller.completedTasks.map(renderTaskItem)
+								)}
+							</>
+						)}
+					</TaskSection>
+				)}
 			</Container>
 
 			<DetailPanel open={isDetailPanelOpen}>
@@ -149,7 +223,7 @@ const TasksListView = () => {
 									<Chip
 										size="small"
 										label={selectedTask.createdAt ? new Date(selectedTask.createdAt).toLocaleString() : '-'}
-										color='default'
+										color="default"
 										variant="outlined"
 										icon={<SysIcon name="accessTime" />}
 									/>
@@ -162,7 +236,7 @@ const TasksListView = () => {
 									<Chip
 										size="small"
 										label={selectedTask.updatedAt ? new Date(selectedTask.updatedAt).toLocaleString() : '-'}
-										color='default'
+										color="default"
 										variant="outlined"
 										icon={<SysIcon name="update" />}
 									/>
@@ -184,16 +258,18 @@ const TasksListView = () => {
 						</DetailPanelContent>
 
 						<DetailPanelFooter>
-							<Button
+							<SysButton
 								fullWidth
 								variant="outlined"
 								startIcon={<SysIcon name="edit" />}
 								onClick={() => controller.onTaskClick(selectedTask._id!)}>
 								Editar tarefa
-							</Button>
+							</SysButton>
 							<DetailCreatorText>
 								Criada por:{' '}
-								{selectedTask.createdBy === Meteor.userId() ? 'Você' : selectedTask.authorName || 'Desconhecido'}
+								{selectedTask.createdBy === Meteor.userId()
+									? 'Você'
+									: selectedTask.authorName || 'Desconhecido'}
 							</DetailCreatorText>
 						</DetailPanelFooter>
 					</>
