@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { Typography, Divider, IconButton, Chip, Stack, Tooltip } from '@mui/material';
+import { Typography, IconButton, Chip, Stack, Tooltip, Pagination } from '@mui/material';
 import { Meteor } from 'meteor/meteor';
 import { TasksListControllerContext } from './tasksListController';
 import TasksListStyles from './tasksListStyles';
@@ -9,13 +9,21 @@ import { SysFab } from '../../../../ui/components/sysFab/sysFab';
 import { SysLoading } from '../../../../ui/components/sysLoading/sysLoading';
 import { SysButton } from '../../../../ui/components/SimpleFormFields/SysButton/SysButton';
 import { ITask } from '../../api/tasksSch';
+import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
+import SysLabelView from '../../../../ui/components/sysLabelView/sysLabelView';
 
 const {
-	PageWrapper, PageHeader, Container, TaskSection, TaskItem, TaskCheckbox, DetailPanelContent, 
-	TaskInfo, TaskTitle, TaskCreator, ActionButton, DetailPanel, DetailPanelHeader, DetailPanelFooter, 
-	DetailTitleRow, DetailStatusDot, DetailField, DetailFieldLabel, DetailCreatorText, SearchWrapper, 
-	SectionHeader, SectionTitle, SectionCount, EmptySection
+	PageWrapper, PageHeader, Container, TaskSection, TaskItem, TaskCheckbox, DetailPanelContent, TaskInfo, 
+	TaskTitle, TaskCreator, ActionButton, DetailPanel, DetailPanelHeader, DetailPanelFooter, DetailTitleRow, 
+	DetailStatusDot, DetailCreatorText, SearchWrapper, SectionHeader, SectionTitle, SectionCount, EmptySection, 
+	PaginationWrapper
 } = TasksListStyles;
+
+const resolveAssignedLabel = (task: ITask): string => {
+	if (!task.assignedTo) return 'Não atribuída';
+	if (task.assignedTo === Meteor.userId()) return 'Você';
+	return task.assignedTo;
+};
 
 const TasksListView = () => {
 	const controller = useContext(TasksListControllerContext);
@@ -34,9 +42,7 @@ const TasksListView = () => {
 
 	const renderTaskItem = (task: ITask) => (
 		<TaskItem key={task._id} selected={selectedTaskId === task._id} onClick={() => handleOpenTask(task._id!)}>
-			<Tooltip
-				title={task.status === 'completed' ? 'Marcar como pendente' : 'Marcar como concluída'}
-				placement="top">
+			<Tooltip title={task.status === 'completed' ? 'Marcar como pendente' : 'Marcar como concluída'} placement="top">
 				<TaskCheckbox
 					completed={task.status === 'completed'}
 					onClick={(e: React.MouseEvent) => {
@@ -76,6 +82,9 @@ const TasksListView = () => {
 		</TaskItem>
 	);
 
+	const estimatedOpenPages = controller.openPage + (controller.hasNextOpen ? 1 : 0);
+	const estimatedCompletedPages = controller.completedPage + (controller.hasNextCompleted ? 1 : 0);
+
 	return (
 		<PageWrapper>
 			<Container>
@@ -83,7 +92,6 @@ const TasksListView = () => {
 					<Typography variant="h5" fontWeight={600}>
 						Tarefas
 					</Typography>
-
 					<SysFab
 						variant="extended"
 						startIcon={<SysIcon name="add" />}
@@ -104,10 +112,7 @@ const TasksListView = () => {
 						endAdornment={
 							controller.searchText ? (
 								<Tooltip title="Limpar pesquisa">
-									<IconButton
-										size="small"
-										onClick={() => controller.onSearchChange('')}
-										aria-label="Limpar pesquisa">
+									<IconButton size="small" onClick={() => controller.onSearchChange('')} aria-label="Limpar pesquisa">
 										<SysIcon name="close" />
 									</IconButton>
 								</Tooltip>
@@ -117,11 +122,7 @@ const TasksListView = () => {
 				</SearchWrapper>
 
 				{controller.loading ? (
-					<SysLoading
-						label="Carregando tarefas…"
-						size="medium"
-						sxMap={{ container: { mt: 6 } }}
-					/>
+					<SysLoading label="Carregando tarefas…" size="medium" sxMap={{ container: { mt: 6 } }} />
 				) : (
 					<TaskSection>
 						<SectionHeader onClick={() => setOpenCollapsed((v) => !v)}>
@@ -140,6 +141,18 @@ const TasksListView = () => {
 									</EmptySection>
 								) : (
 									controller.openTasks.map(renderTaskItem)
+								)}
+								{estimatedOpenPages > 1 && (
+									<PaginationWrapper>
+										<Pagination
+											count={estimatedOpenPages}
+											page={controller.openPage}
+											onChange={(_, page) => controller.onOpenPageChange(page)}
+											size="small"
+											showFirstButton
+											showLastButton
+										/>
+									</PaginationWrapper>
 								)}
 							</>
 						)}
@@ -161,6 +174,18 @@ const TasksListView = () => {
 								) : (
 									controller.completedTasks.map(renderTaskItem)
 								)}
+								{estimatedCompletedPages > 1 && (
+									<PaginationWrapper>
+										<Pagination
+											count={estimatedCompletedPages}
+											page={controller.completedPage}
+											onChange={(_, page) => controller.onCompletedPageChange(page)}
+											size="small"
+											showFirstButton
+											showLastButton
+										/>
+									</PaginationWrapper>
+								)}
 							</>
 						)}
 					</TaskSection>
@@ -171,14 +196,6 @@ const TasksListView = () => {
 				{selectedTask && (
 					<>
 						<DetailPanelHeader>
-							<Tooltip title="Fechar">
-								<IconButton size="small" onClick={handleCloseDetailPanel} aria-label="Fechar">
-									<SysIcon name="close" />
-								</IconButton>
-							</Tooltip>
-						</DetailPanelHeader>
-
-						<DetailPanelContent>
 							<Tooltip
 								title={selectedTask.status === 'completed' ? 'Marcar como pendente' : 'Marcar como concluída'}
 								placement="top-start">
@@ -188,73 +205,89 @@ const TasksListView = () => {
 										controller.onTaskCheckboxClick(e, selectedTask._id!);
 									}}>
 									<DetailStatusDot completed={selectedTask.status === 'completed'} />
-									<Typography variant="subtitle1" fontWeight={700} lineHeight={1.4}>
+									<Typography variant="subtitle1" fontWeight={700} lineHeight={1.4} noWrap>
 										{selectedTask.title}
 									</Typography>
 								</DetailTitleRow>
 							</Tooltip>
 
-							<Divider />
+							<Stack direction="row" spacing={0.5} flexShrink={0}>
+								<Tooltip title="Excluir tarefa">
+									<IconButton
+										size="small"
+										onClick={() => {
+											handleCloseDetailPanel();
+											controller.onDeleteTask(selectedTask);
+										}}
+										aria-label="Excluir tarefa">
+										<SysIcon name="delete" />
+									</IconButton>
+								</Tooltip>
+								<Tooltip title="Fechar">
+									<IconButton size="small" onClick={handleCloseDetailPanel} aria-label="Fechar">
+										<SysIcon name="close" />
+									</IconButton>
+								</Tooltip>
+							</Stack>
+						</DetailPanelHeader>
 
+						<DetailPanelContent>
 							{selectedTask.description && (
-								<DetailField>
-									<DetailFieldLabel>Descrição</DetailFieldLabel>
+								<SysLabelView label="Descrição">
 									<Typography variant="body2" lineHeight={1.7}>
 										{selectedTask.description}
 									</Typography>
-								</DetailField>
+								</SysLabelView>
 							)}
 
-							<DetailField>
-								<DetailFieldLabel>Status</DetailFieldLabel>
-								<Stack direction="row">
-									<Chip
-										size="small"
-										label={selectedTask.status === 'completed' ? 'Concluída' : 'Pendente'}
-										color={selectedTask.status === 'completed' ? 'success' : 'default'}
-										variant="outlined"
-									/>
-								</Stack>
-							</DetailField>
+							<SysLabelView label="Status">
+								<Chip
+									size="small"
+									label={selectedTask.status === 'completed' ? 'Concluída' : 'Pendente'}
+									color={selectedTask.status === 'completed' ? 'success' : 'default'}
+									variant="outlined"
+								/>
+							</SysLabelView>
 
-							<DetailField>
-								<DetailFieldLabel>Criado em</DetailFieldLabel>
-								<Stack direction="row">
-									<Chip
-										size="small"
-										label={selectedTask.createdAt ? new Date(selectedTask.createdAt).toLocaleString() : '-'}
-										color="default"
-										variant="outlined"
-										icon={<SysIcon name="accessTime" />}
-									/>
-								</Stack>
-							</DetailField>
+							<SysLabelView label="Criado em">
+								<Chip
+									size="small"
+									label={selectedTask.createdAt ? new Date(selectedTask.createdAt).toLocaleString() : '-'}
+									color="default"
+									variant="outlined"
+									icon={<SysIcon name="accessTime" />}
+								/>
+							</SysLabelView>
 
-							<DetailField>
-								<DetailFieldLabel>Atualizado em</DetailFieldLabel>
-								<Stack direction="row">
-									<Chip
-										size="small"
-										label={selectedTask.updatedAt ? new Date(selectedTask.updatedAt).toLocaleString() : '-'}
-										color="default"
-										variant="outlined"
-										icon={<SysIcon name="update" />}
-									/>
-								</Stack>
-							</DetailField>
+							<SysLabelView label="Atualizado em">
+								<Chip
+									size="small"
+									label={selectedTask.updatedAt ? new Date(selectedTask.updatedAt).toLocaleString() : '-'}
+									color="default"
+									variant="outlined"
+									icon={<SysIcon name="update" />}
+								/>
+							</SysLabelView>
 
-							<DetailField>
-								<DetailFieldLabel>Tipo</DetailFieldLabel>
-								<Stack direction="row">
-									<Chip
-										size="small"
-										label={selectedTask.personal ? 'Pessoal' : 'Time'}
-										color={selectedTask.personal ? 'primary' : 'default'}
-										variant="outlined"
-										icon={<SysIcon name={selectedTask.personal ? 'person' : 'group'} />}
-									/>
-								</Stack>
-							</DetailField>
+							<SysLabelView label="Atribuído a">
+								<Chip
+									size="small"
+									label={resolveAssignedLabel(selectedTask)}
+									color="default"
+									variant="outlined"
+									icon={<AssignmentIndIcon />}
+								/>
+							</SysLabelView>
+
+							<SysLabelView label="Tipo">
+								<Chip
+									size="small"
+									label={selectedTask.personal ? 'Pessoal' : 'Time'}
+									color="default"
+									variant="outlined"
+									icon={<SysIcon name={selectedTask.personal ? 'person' : 'group'} />}
+								/>
+							</SysLabelView>
 						</DetailPanelContent>
 
 						<DetailPanelFooter>
@@ -267,9 +300,7 @@ const TasksListView = () => {
 							</SysButton>
 							<DetailCreatorText>
 								Criada por:{' '}
-								{selectedTask.createdBy === Meteor.userId()
-									? 'Você'
-									: selectedTask.authorName || 'Desconhecido'}
+								{selectedTask.createdBy === Meteor.userId() ? 'Você' : selectedTask.authorName || 'Desconhecido'}
 							</DetailCreatorText>
 						</DetailPanelFooter>
 					</>

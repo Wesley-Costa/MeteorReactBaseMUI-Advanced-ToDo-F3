@@ -15,6 +15,12 @@ interface ITasksListControllerContext {
 	loading: boolean;
 	actionLoadingId: string | null;
 	searchText: string;
+	openPage: number;
+	completedPage: number;
+	hasNextOpen: boolean;
+	hasNextCompleted: boolean;
+	onOpenPageChange: (page: number) => void;
+	onCompletedPageChange: (page: number) => void;
 	onSearchChange: (value: string) => void;
 	onAddTaskClick: () => void;
 	onTaskClick: (id: string) => void;
@@ -26,29 +32,67 @@ export const TasksListControllerContext = React.createContext<ITasksListControll
 	{} as ITasksListControllerContext
 );
 
+const PAGE_SIZE = 4;
+
 const TasksListController = () => {
 	const navigate = useNavigate();
 	const { showNotification } = useContext<IAppLayoutContext>(AppLayoutContext);
 	const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 	const [searchText, setSearchText] = useState<string>('');
 
-	const { loading, openTasks, completedTasks } = useTracker(() => {
-		const openSub = tasksApi.subscribe('list', searchText, { status: 'open' });
-		const completedSub = tasksApi.subscribe('list', searchText, { status: 'completed' });
+	const [openPage, setOpenPage] = useState(1);
+	const [completedPage, setCompletedPage] = useState(1);
+
+	const handleSearchChange = useCallback((value: string) => {
+		setSearchText(value);
+		setOpenPage(1);
+		setCompletedPage(1);
+	}, []);
+
+	const { loading, openTasks, completedTasks, hasNextOpen, hasNextCompleted } = useTracker(() => {
+		const openSub = tasksApi.subscribe(
+			'list',
+			searchText,
+			{ status: 'open' },
+			{
+				skip: (openPage - 1) * PAGE_SIZE,
+				limit: PAGE_SIZE + 1
+			}
+		);
+		const completedSub = tasksApi.subscribe(
+			'list',
+			searchText,
+			{ status: 'completed' },
+			{
+				skip: (completedPage - 1) * PAGE_SIZE,
+				limit: PAGE_SIZE + 1
+			}
+		);
 		const isReady = !!openSub && openSub.ready() && !!completedSub && completedSub.ready();
+
+		const allOpen = isReady ? tasksApi.find({ status: 'open' }, { sort: { updatedAt: -1 } }).fetch() : [];
+		const allCompleted = isReady ? tasksApi.find({ status: 'completed' }, { sort: { updatedAt: -1 } }).fetch() : [];
 
 		return {
 			loading: !isReady,
-			openTasks: isReady ? tasksApi.find({ status: 'open' }).fetch() : [],
-			completedTasks: isReady ? tasksApi.find({ status: 'completed' }).fetch() : []
+			openTasks: allOpen.slice(0, PAGE_SIZE),
+			completedTasks: allCompleted.slice(0, PAGE_SIZE),
+			hasNextOpen: allOpen.length > PAGE_SIZE,
+			hasNextCompleted: allCompleted.length > PAGE_SIZE
 		};
-	}, [searchText]);
+	}, [searchText, openPage, completedPage]);
 
 	const tasks = useMemo(() => [...openTasks, ...completedTasks], [openTasks, completedTasks]);
 
-	const onSearchChange = useCallback((value: string) => {
-		setSearchText(value);
+	const onOpenPageChange = useCallback((page: number) => {
+		setOpenPage(Math.max(1, page));
 	}, []);
+
+	const onCompletedPageChange = useCallback((page: number) => {
+		setCompletedPage(Math.max(1, page));
+	}, []);
+
+	const onSearchChange = handleSearchChange;
 
 	const onAddTaskClick = useCallback(() => {
 		navigate('/tasks/create');
@@ -128,6 +172,12 @@ const TasksListController = () => {
 			loading,
 			actionLoadingId,
 			searchText,
+			openPage,
+			completedPage,
+			hasNextOpen,
+			hasNextCompleted,
+			onOpenPageChange,
+			onCompletedPageChange,
 			onSearchChange,
 			onAddTaskClick,
 			onTaskClick,
@@ -141,6 +191,12 @@ const TasksListController = () => {
 			loading,
 			actionLoadingId,
 			searchText,
+			openPage,
+			completedPage,
+			hasNextOpen,
+			hasNextCompleted,
+			onOpenPageChange,
+			onCompletedPageChange,
 			onSearchChange,
 			onAddTaskClick,
 			onTaskClick,

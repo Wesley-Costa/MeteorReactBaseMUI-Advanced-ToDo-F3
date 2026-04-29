@@ -40,14 +40,12 @@ const TasksCreateView = () => {
 							<SysSelectField name="status" placeholder="Selecione o status" />
 							<SysSwitch name="personal" label="Tarefa pessoal?" valueLabel="Pessoal" />
 						</InlineRow>
+						<SysSelectField name="assignedTo" placeholder="Atribuído a" options={controller.userOptions} />
 					</FormColumn>
 				</Body>
 
 				<Footer>
-					<SysButton
-						variant="outlined"
-						startIcon={<SysIcon name="close" />}
-						onClick={controller.closePage}>
+					<SysButton variant="outlined" startIcon={<SysIcon name="close" />} onClick={controller.closePage}>
 						Cancelar
 					</SysButton>
 					<SysFormButton>Salvar</SysFormButton>

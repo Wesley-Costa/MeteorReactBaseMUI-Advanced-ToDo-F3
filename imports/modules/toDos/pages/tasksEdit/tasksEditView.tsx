@@ -25,7 +25,6 @@ const TasksEditView = () => {
 					Editar Tarefa
 				</Typography>
 			</Header>
-
 			<SysForm
 				mode="edit"
 				schema={controller.schema}
@@ -37,17 +36,14 @@ const TasksEditView = () => {
 						<SysTextField name="title" placeholder="Título da tarefa" />
 						<SysTextField name="description" placeholder="Descrição da tarefa" multiline rows={4} />
 						<InlineRow>
-							<SysSelectField name="status" placeholder="Selecione o status" />
+							<SysSelectField name="status" placeholder="Selecione o status" options={controller.statusOptions} />
 							<SysSwitch name="personal" label="Tarefa pessoal?" valueLabel="Pessoal" />
 						</InlineRow>
+						<SysSelectField name="assignedTo" placeholder="Atribuído a" options={controller.userOptions} />
 					</FormColumn>
 				</Body>
-
 				<Footer>
-					<SysButton
-						variant="outlined"
-						startIcon={<SysIcon name="close" />}
-						onClick={controller.closePage}>
+					<SysButton variant="outlined" startIcon={<SysIcon name="close" />} onClick={controller.closePage}>
 						Cancelar
 					</SysButton>
 					<SysFormButton>Salvar</SysFormButton>

@@ -25,6 +25,7 @@ class TasksServerApi extends ProductServerBase<ITask> {
 					updatedAt: 1,
 					createdBy: 1,
 					authorName: 1,
+					assignedTo: 1,
 					status: 1,
 					personal: 1
 				}
@@ -69,6 +70,7 @@ class TasksServerApi extends ProductServerBase<ITask> {
 					updatedAt: 1,
 					createdBy: 1,
 					authorName: 1,
+					assignedTo: 1,
 					status: 1,
 					personal: 1
 				}
@@ -86,6 +88,7 @@ class TasksServerApi extends ProductServerBase<ITask> {
 					updatedAt: 1,
 					createdBy: 1,
 					authorName: 1,
+					assignedTo: 1,
 					status: 1,
 					personal: 1
 				}

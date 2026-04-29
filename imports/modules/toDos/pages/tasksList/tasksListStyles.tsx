@@ -23,11 +23,11 @@ interface ITasksListStyles {
 	DetailField: ElementType<BoxProps>;
 	DetailFieldLabel: ElementType<TypographyProps>;
 	DetailCreatorText: ElementType<TypographyProps>;
-	WelcomeSection: ElementType<BoxProps>;
 	SectionHeader: ElementType<BoxProps>;
 	SectionTitle: ElementType<TypographyProps>;
 	SectionCount: ElementType<ChipProps>;
 	EmptySection: ElementType<TypographyProps>;
+	PaginationWrapper: ElementType<BoxProps>;
 }
 
 const TasksListStyles: ITasksListStyles = {
@@ -199,11 +199,12 @@ const TasksListStyles: ITasksListStyles = {
 
 	DetailPanelHeader: styled(Box)(({ theme }) => ({
 		display: 'flex',
-		justifyContent: 'flex-end',
 		alignItems: 'center',
+		gap: theme.spacing(1),
 		padding: theme.spacing(1.5, 2),
 		borderBottom: `1px solid ${theme.palette.divider}`,
-		flexShrink: 0
+		flexShrink: 0,
+		minWidth: 0
 	})),
 
 	DetailPanelContent: styled(Box)(({ theme }) => ({
@@ -226,9 +227,12 @@ const TasksListStyles: ITasksListStyles = {
 
 	DetailTitleRow: styled(Box)(({ theme }) => ({
 		display: 'flex',
-		alignItems: 'flex-start',
+		alignItems: 'center',
 		gap: theme.spacing(1.5),
-		cursor: 'pointer'
+		cursor: 'pointer',
+		flex: 1,
+		minWidth: 0,
+		overflow: 'hidden'
 	})),
 
 	DetailStatusDot: styled(Box)<{ completed?: boolean }>(({ theme, completed }) => ({
@@ -274,15 +278,13 @@ const TasksListStyles: ITasksListStyles = {
 		textAlign: 'right'
 	})),
 
-	WelcomeSection: styled(Box)(({ theme }) => ({
+	PaginationWrapper: styled(Box)(({ theme }) => ({
 		display: 'flex',
-		flexDirection: 'column',
-		alignItems: 'center',
 		justifyContent: 'center',
-		width: '100%',
-		marginBottom: theme.spacing(4),
-		textAlign: 'center'
-	}))
+		alignItems: 'center',
+		marginTop: theme.spacing(2),
+		marginBottom: theme.spacing(1)
+	})),
 };
 
 export default TasksListStyles;

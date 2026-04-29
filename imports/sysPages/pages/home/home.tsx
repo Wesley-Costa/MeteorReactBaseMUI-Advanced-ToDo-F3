@@ -12,16 +12,22 @@ import { SysLoading } from '/imports/ui/components/sysLoading/sysLoading';
 import { SysButton } from '/imports/ui/components/SimpleFormFields/SysButton/SysButton';
 
 const {
-	Container, Header, HeaderTitle, HeaderSubtitle, SectionWrapper, SectionLabel, SectionLabelTitle, ListContainer,
-	RemainingListContainer, TaskListItem, TaskListItemIcon, TaskListItemButton, TaskSecondaryStack, TaskTitle,
-	TaskCreatorText, TaskCreatorUnderline, TaskCheckbox, TaskActions, ActionButton, StateContainer,
-	TaskModal, TaskModalHeader, TaskModalTitleRow, TaskModalTitle, TaskModalStatusChip, TaskModalMeta, TaskModalSection,
-	TaskModalSectionLabel, TaskModalDescriptionBody, TaskModalDescriptionText, TaskModalInfoRow, TaskModalInfoLabel,
-	TaskModalInfoAvatar, TaskModalInfoValue, TaskModalActions, FooterSection, GoToTasksButton, GoToTasksIcon
+	Container, Header, HeaderTitle, HeaderSubtitle, SectionWrapper, SectionLabel, SectionLabelTitle, ListContainer, 
+	RemainingListContainer, TaskListItem, TaskListItemIcon, TaskListItemButton, TaskSecondaryStack, TaskTitle, TaskCreatorText, 
+	TaskCreatorUnderline, TaskCheckbox, TaskActions, ActionButton, StateContainer, TaskModal, TaskModalHeader, TaskModalTitleRow, 
+	TaskModalTitle, TaskModalStatusChip, TaskModalMeta, TaskModalSection, TaskModalSectionLabel, TaskModalDescriptionBody, 
+	TaskModalDescriptionText, TaskModalInfoRow, TaskModalInfoLabel, TaskModalInfoAvatar, TaskModalInfoValue, TaskModalActions, 
+	FooterSection, GoToTasksButton, GoToTasksIcon
 } = HomeStyles;
 
 const resolveCreatorLabel = (taskCreatedBy?: string, taskAuthorName?: string): string =>
 	taskCreatedBy === Meteor.userId() ? 'Você' : taskAuthorName || '';
+
+const resolveAssignedLabel = (task: ITask): string => {
+	if (!task.assignedTo) return '';
+	if (task.assignedTo === Meteor.userId()) return 'Você';
+	return task.assignedToName || task.assignedTo;
+};
 
 const isTaskOwner = (task: ITask): boolean => task.createdBy === Meteor.userId();
 
@@ -157,18 +163,11 @@ const HomePage: React.FC = () => {
 		[showNotification]
 	);
 
-	const renderCreatorLabel = (taskCreatedBy?: string, taskAuthorName?: string) => (
-		<TaskCreatorText component="span">
-			Criada por: <TaskCreatorUnderline>{resolveCreatorLabel(taskCreatedBy, taskAuthorName)}</TaskCreatorUnderline>
-		</TaskCreatorText>
-	);
-
 	const renderTaskActions = (task: ITask, isLoading: boolean) => (
 		<TaskActions>
 			<Tooltip title="Editar">
 				<span>
 					<ActionButton
-						aria-label="Editar tarefa"
 						size="small"
 						disabled={isLoading}
 						onClick={(e) => {
@@ -179,10 +178,10 @@ const HomePage: React.FC = () => {
 					</ActionButton>
 				</span>
 			</Tooltip>
+
 			<Tooltip title="Excluir">
 				<span>
 					<ActionButton
-						aria-label="Excluir tarefa"
 						size="small"
 						disabled={isLoading}
 						onClick={(e) => {
@@ -196,7 +195,7 @@ const HomePage: React.FC = () => {
 		</TaskActions>
 	);
 
-	const renderTaskItem = (task: ITask, idx: number, totalCount: number) => {
+	const renderTaskItem = (task: ITask, idx: number) => {
 		const isCompleted = task.status === 'completed';
 		const isLoading = actionLoadingId === task._id;
 
@@ -204,8 +203,7 @@ const HomePage: React.FC = () => {
 			<Fragment key={task._id || idx}>
 				<TaskListItem
 					secondaryAction={isTaskOwner(task) ? renderTaskActions(task, isLoading) : undefined}
-					disablePadding
-					alignItems="flex-start">
+					disablePadding>
 					<TaskListItemIcon>
 						<TaskCheckbox
 							completed={isCompleted}
@@ -215,40 +213,25 @@ const HomePage: React.FC = () => {
 							}}
 						/>
 					</TaskListItemIcon>
+
 					<TaskListItemButton onClick={() => handleOpenTask(task)}>
 						<ListItemText
 							primary={<TaskTitle completed={isCompleted}>{task.title || 'Sem título'}</TaskTitle>}
 							secondary={
 								<TaskSecondaryStack component="span">
-									{renderCreatorLabel(task.createdBy, task.authorName)}
+									<TaskCreatorText component="span">
+										Criada por:{' '}
+										<TaskCreatorUnderline>{resolveCreatorLabel(task.createdBy, task.authorName)}</TaskCreatorUnderline>
+									</TaskCreatorText>
 								</TaskSecondaryStack>
 							}
 						/>
 					</TaskListItemButton>
 				</TaskListItem>
+
 				<Divider component="li" />
 			</Fragment>
 		);
-	};
-
-	const renderListContent = () => {
-		if (loading) {
-			return (
-				<SysLoading
-					label="Carregando tarefas..."
-					size="small"
-					sxMap={{ container: { py: 4 } }}
-				/>
-			);
-		}
-		if (!mostRecentTask) {
-			return (
-				<StateContainer>
-					<Typography variant="body1">Tarefas não encontradas</Typography>
-				</StateContainer>
-			);
-		}
-		return <List disablePadding>{renderTaskItem(mostRecentTask, 0, 1)}</List>;
 	};
 
 	const renderTaskModal = () => {
@@ -257,8 +240,8 @@ const HomePage: React.FC = () => {
 		const isCompleted = selectedTask.status === 'completed';
 		const creatorLabel = resolveCreatorLabel(selectedTask.createdBy, selectedTask.authorName);
 		const creatorInitials = getInitials(creatorLabel === 'Você' ? firstName : creatorLabel);
-		const assigneeInitials = getInitials(selectedTask.authorName);
-		const showAssignee = !!selectedTask.authorName;
+		const assignedLabel = resolveAssignedLabel(selectedTask);
+		const assigneeInitials = getInitials(assignedLabel === 'Você' ? firstName : assignedLabel);
 		const isOwner = isTaskOwner(selectedTask);
 
 		return (
@@ -268,11 +251,12 @@ const HomePage: React.FC = () => {
 				<DialogContent>
 					<TaskModalHeader>
 						<TaskModalTitleRow>
-							<TaskModalTitle>{selectedTask.title || 'Sem título'}</TaskModalTitle>
+							<TaskModalTitle>{selectedTask.title}</TaskModalTitle>
 							<TaskModalStatusChip completed={isCompleted}>
 								{isCompleted ? 'Concluída' : 'Em aberto'}
 							</TaskModalStatusChip>
 						</TaskModalTitleRow>
+
 						<TaskModalMeta>
 							{selectedTask._id ? `Tarefa #${selectedTask._id.slice(-5).toUpperCase()}` : 'Tarefa'}
 						</TaskModalMeta>
@@ -282,7 +266,7 @@ const HomePage: React.FC = () => {
 						<TaskModalSectionLabel>Descrição</TaskModalSectionLabel>
 						<TaskModalDescriptionBody>
 							<TaskModalDescriptionText>
-								{(selectedTask as any).description || 'Nenhuma descrição fornecida para esta tarefa.'}
+								{(selectedTask as any).description || 'Nenhuma descrição fornecida.'}
 							</TaskModalDescriptionText>
 						</TaskModalDescriptionBody>
 					</TaskModalSection>
@@ -296,11 +280,11 @@ const HomePage: React.FC = () => {
 							<TaskModalInfoValue>{creatorLabel}</TaskModalInfoValue>
 						</TaskModalInfoRow>
 
-						{showAssignee && (
+						{assignedLabel && (
 							<TaskModalInfoRow>
 								<TaskModalInfoLabel>Atribuída para</TaskModalInfoLabel>
 								<TaskModalInfoAvatar variant="secondary">{assigneeInitials}</TaskModalInfoAvatar>
-								<TaskModalInfoValue>{selectedTask.authorName}</TaskModalInfoValue>
+								<TaskModalInfoValue>{assignedLabel}</TaskModalInfoValue>
 							</TaskModalInfoRow>
 						)}
 
@@ -338,23 +322,30 @@ const HomePage: React.FC = () => {
 		<Container>
 			<Header>
 				<HeaderTitle variant="h3">Olá, {firstName}</HeaderTitle>
-				<HeaderSubtitle variant="body1">
-					Seus projetos muito mais organizados. Veja as tarefas adicionadas por seu time, por você e para você!
-				</HeaderSubtitle>
+				<HeaderSubtitle variant="body1">Seus projetos muito mais organizados.</HeaderSubtitle>
 			</Header>
 
 			<SectionWrapper>
 				<SectionLabel>
 					<SectionLabelTitle variant="h5">Adicionadas Recentemente</SectionLabelTitle>
 				</SectionLabel>
-				<ListContainer>{renderListContent()}</ListContainer>
+
+				<ListContainer>
+					{loading ? (
+						<SysLoading label="Carregando tarefas..." size="small" />
+					) : mostRecentTask ? (
+						<List disablePadding>{renderTaskItem(mostRecentTask, 0)}</List>
+					) : (
+						<StateContainer>
+							<Typography>Tarefas não encontradas</Typography>
+						</StateContainer>
+					)}
+				</ListContainer>
 			</SectionWrapper>
 
 			{!loading && remainingTasks.length > 0 && (
 				<RemainingListContainer>
-					<List disablePadding>
-						{remainingTasks.map((task, idx) => renderTaskItem(task, idx, remainingTasks.length))}
-					</List>
+					<List disablePadding>{remainingTasks.map((task, idx) => renderTaskItem(task, idx))}</List>
 				</RemainingListContainer>
 			)}
 
