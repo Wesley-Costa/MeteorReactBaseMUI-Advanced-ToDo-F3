@@ -10,10 +10,11 @@ import { ISchema } from '../../../../typings/ISchema';
 import { IMeteorError } from '../../../../typings/BoilerplateDefaultTypings';
 import { IOption } from '../../../../ui/components/InterfaceBaseSimpleFormComponent';
 import TasksEditView from './tasksEditView';
+import { userprofileData } from '/imports/libs/getUser';
 
 const STATUS_OPTIONS: IOption[] = [
-	{ value: 'Não concluída', label: 'Não concluída' },
-	{ value: 'Concluída', label: 'Concluída' }
+	{ value: 'open', label: 'Não concluída' },
+	{ value: 'completed', label: 'Concluída' }
 ];
 
 const statusValueToLabel: Record<string, string> = {
@@ -44,40 +45,42 @@ const TasksEditController = () => {
 	const { showNotification } = useContext<IAppLayoutContext>(AppLayoutContext);
 
 	const usernameToIdMapRef = useRef<Record<string, string>>({});
+	const idToUsernameMapRef = useRef<Record<string, string>>({});
 
 	const { document, loading, userOptions } = useTracker(() => {
 		const subHandle = id ? tasksApi.subscribe('edit', { _id: id }) : null;
 		const rawDocument = id && subHandle?.ready() ? tasksApi.findOne({ _id: id }) : {};
 
 		const usersSubHandle = Meteor.subscribe('userprofile.getListOfusers');
-		const users = usersSubHandle.ready()
-			? Meteor.users.find({}, { fields: { _id: 1, username: 1, 'emails.address': 1 } }).fetch()
-			: [];
+		const userprofileCollection = userprofileData.collectionInstance;
+		const users = usersSubHandle.ready() ? userprofileCollection.find({}).fetch() : [];
 
-		const userOptions: IOption[] = users.map((u) => {
-			const name = u.username || u.emails?.[0]?.address || u._id;
+		const userOptions: IOption[] = users.map((u: any) => {
+			const name = u.username || u.email?.[0]?.address || u._id;
 			return { value: name, label: name };
 		});
 
-		const idToUsernameMap: Record<string, string> = {};
 		usernameToIdMapRef.current = {};
-		users.forEach((u) => {
-			const name = u.username || u.emails?.[0]?.address || u._id;
-			idToUsernameMap[u._id] = name;
+		idToUsernameMapRef.current = {};
+		users.forEach((u: any) => {
+			const name = u.username;
 			usernameToIdMapRef.current[name] = u._id;
+			idToUsernameMapRef.current[u._id] = name;
 		});
 
 		const task = rawDocument as ITask;
 
-		const assignedToUsername = task?.assignedTo
-			? (idToUsernameMap[task.assignedTo] ?? task.assignedTo)
+		const assignedToDisplayName = task?.assignedTo
+			? (idToUsernameMapRef.current[task.assignedTo] ?? task.assignedTo)
 			: task?.assignedTo;
 
-		const statusLabel = task?.status ? (statusValueToLabel[task.status] ?? task.status) : task?.status;
+		const statusLabel = task?.status
+			? (statusValueToLabel[task.status] ?? task.status)
+			: task?.status;
 
 		const document: ITask = {
 			...task,
-			assignedTo: assignedToUsername,
+			assignedTo: assignedToDisplayName,
 			status: statusLabel as ITask['status']
 		};
 

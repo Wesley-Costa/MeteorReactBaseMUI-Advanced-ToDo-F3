@@ -15,13 +15,13 @@ const _mapRolesRecursos: MapRolesRecursos = {
 		Usuarios.USUARIO_UPDATE,
 		Usuarios.USUARIO_VIEW,
 		Tasks.TASKS_VIEW,
-		Tasks.TASKS_CREATE
+		Tasks.TASKS_CREATE,
+		Tasks.TASKS_UPDATE,
+		Tasks.TASKS_REMOVE,
 	],
 	[RoleType.ADMINISTRADOR]: [
 		Usuarios.USUARIO_CREATE,
 		Usuarios.USUARIO_REMOVE,
-		Tasks.TASKS_REMOVE,
-		Tasks.TASKS_UPDATE
 	],
 };
 

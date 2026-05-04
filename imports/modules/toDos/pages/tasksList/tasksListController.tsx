@@ -9,7 +9,6 @@ import { IMeteorError } from '../../../../typings/IMeteorError';
 import TasksListView from './tasksListView';
 
 interface ITasksListControllerContext {
-	tasks: ITask[];
 	openTasks: ITask[];
 	completedTasks: ITask[];
 	loading: boolean;
@@ -26,6 +25,8 @@ interface ITasksListControllerContext {
 	onTaskClick: (id: string) => void;
 	onDeleteTask: (task: ITask) => void;
 	onTaskCheckboxClick: (e: React.MouseEvent, id: string) => void;
+	resolveAssignedLabel: (task: ITask) => string;
+	resolveAuthorLabel: (task: ITask) => string;
 }
 
 export const TasksListControllerContext = React.createContext<ITasksListControllerContext>(
@@ -39,7 +40,6 @@ const TasksListController = () => {
 	const { showNotification } = useContext<IAppLayoutContext>(AppLayoutContext);
 	const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 	const [searchText, setSearchText] = useState<string>('');
-
 	const [openPage, setOpenPage] = useState(1);
 	const [completedPage, setCompletedPage] = useState(1);
 
@@ -54,70 +54,62 @@ const TasksListController = () => {
 			'list',
 			searchText,
 			{ status: 'open' },
-			{
-				skip: (openPage - 1) * PAGE_SIZE,
-				limit: PAGE_SIZE + 1
-			}
+			{ skip: (openPage - 1) * PAGE_SIZE, limit: PAGE_SIZE + 1 }
 		);
+
 		const completedSub = tasksApi.subscribe(
 			'list',
 			searchText,
 			{ status: 'completed' },
-			{
-				skip: (completedPage - 1) * PAGE_SIZE,
-				limit: PAGE_SIZE + 1
-			}
+			{ skip: (completedPage - 1) * PAGE_SIZE, limit: PAGE_SIZE + 1 }
 		);
+
 		const isReady = !!openSub && openSub.ready() && !!completedSub && completedSub.ready();
 
-		const allOpen = isReady ? tasksApi.find({ status: 'open' }, { sort: { updatedAt: -1 } }).fetch() : [];
-		const allCompleted = isReady ? tasksApi.find({ status: 'completed' }, { sort: { updatedAt: -1 } }).fetch() : [];
+		if (!isReady) {
+			return {
+				loading: true,
+				openTasks: [],
+				completedTasks: [],
+				hasNextOpen: false,
+				hasNextCompleted: false
+			};
+		}
+
+		const rawOpen = tasksApi.findByStatus('open', PAGE_SIZE + 1);
+		const rawCompleted = tasksApi.findByStatus('completed', PAGE_SIZE + 1);
 
 		return {
-			loading: !isReady,
-			openTasks: allOpen.slice(0, PAGE_SIZE),
-			completedTasks: allCompleted.slice(0, PAGE_SIZE),
-			hasNextOpen: allOpen.length > PAGE_SIZE,
-			hasNextCompleted: allCompleted.length > PAGE_SIZE
+			loading: false,
+			openTasks: rawOpen.slice(0, PAGE_SIZE),
+			completedTasks: rawCompleted.slice(0, PAGE_SIZE),
+			hasNextOpen: rawOpen.length > PAGE_SIZE,
+			hasNextCompleted: rawCompleted.length > PAGE_SIZE
 		};
 	}, [searchText, openPage, completedPage]);
 
 	const tasks = useMemo(() => [...openTasks, ...completedTasks], [openTasks, completedTasks]);
 
-	const onOpenPageChange = useCallback((page: number) => {
-		setOpenPage(Math.max(1, page));
-	}, []);
-
-	const onCompletedPageChange = useCallback((page: number) => {
-		setCompletedPage(Math.max(1, page));
-	}, []);
-
+	const onOpenPageChange = useCallback((page: number) => setOpenPage(Math.max(1, page)), []);
+	const onCompletedPageChange = useCallback((page: number) => setCompletedPage(Math.max(1, page)), []);
 	const onSearchChange = handleSearchChange;
+	const onAddTaskClick = useCallback(() => navigate('/tasks/create'), [navigate]);
+	const onTaskClick = useCallback((id: string) => navigate(`/tasks/edit/${id}`), [navigate]);
 
-	const onAddTaskClick = useCallback(() => {
-		navigate('/tasks/create');
-	}, [navigate]);
+	const resolveAssignedLabel = useCallback((task: ITask): string => {
+		if (!task.assignedTo && !task.assignedToName) return 'Não atribuída';
+		if (task.assignedTo === Meteor.userId()) return 'Você';
+		return task.assignedToName || 'Desconhecido';
+	}, []);
 
-	const onTaskClick = useCallback(
-		(id: string) => {
-			navigate(`/tasks/edit/${id}`);
-		},
-		[navigate]
-	);
+	const resolveAuthorLabel = useCallback((task: ITask): string => {
+		if (task.createdBy === Meteor.userId()) return 'Você';
+		return task.authorName || 'Desconhecido';
+	}, []);
 
 	const onDeleteTask = useCallback(
 		(task: ITask) => {
 			if (!task?._id) return;
-
-			if (task.createdBy && task.createdBy !== Meteor.userId()) {
-				showNotification({
-					type: 'error',
-					title: 'Permissão negada',
-					message: 'Somente o criador pode remover esta tarefa.',
-					showCloseButton: true
-				});
-				return;
-			}
 
 			setActionLoadingId(task._id);
 			tasksApi.remove({ _id: task._id }, (e: IMeteorError, r: any) => {
@@ -134,7 +126,8 @@ const TasksListController = () => {
 				showNotification({
 					type: 'success',
 					title: 'Tarefa excluída',
-					message: (r && (r.message || r.reason)) || 'Tarefa removida com sucesso'
+					message: (r && (r.message || r.reason)) || 'Tarefa removida com sucesso',
+					showCloseButton: true
 				});
 			});
 		},
@@ -144,10 +137,12 @@ const TasksListController = () => {
 	const onTaskCheckboxClick = useCallback(
 		(e: React.MouseEvent, id: string) => {
 			e.stopPropagation();
+
 			const task = tasks.find((t) => t._id === id);
 			if (!task) return;
 
 			const newStatus = task.status === 'completed' ? 'open' : 'completed';
+
 			setActionLoadingId(id);
 			tasksApi.update({ ...task, status: newStatus }, (e: IMeteorError) => {
 				setActionLoadingId(null);
@@ -166,7 +161,6 @@ const TasksListController = () => {
 
 	const providerValues: ITasksListControllerContext = useMemo(
 		() => ({
-			tasks,
 			openTasks,
 			completedTasks,
 			loading,
@@ -182,10 +176,11 @@ const TasksListController = () => {
 			onAddTaskClick,
 			onTaskClick,
 			onDeleteTask,
-			onTaskCheckboxClick
+			onTaskCheckboxClick,
+			resolveAssignedLabel,
+			resolveAuthorLabel
 		}),
 		[
-			tasks,
 			openTasks,
 			completedTasks,
 			loading,
@@ -201,7 +196,9 @@ const TasksListController = () => {
 			onAddTaskClick,
 			onTaskClick,
 			onDeleteTask,
-			onTaskCheckboxClick
+			onTaskCheckboxClick,
+			resolveAssignedLabel,
+			resolveAuthorLabel
 		]
 	);
 

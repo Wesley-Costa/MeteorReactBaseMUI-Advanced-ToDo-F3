@@ -142,13 +142,13 @@ class UserProfileServerApi extends ProductServerBase<IUserProfile> {
 		if (Meteor.isServer) {
 			if (userprofile.password) {
 				userprofile._id = await Accounts.createUser({
-					username: userprofile.email,
+					username: userprofile.username,
 					password: userprofile.password,
 					email: userprofile.email
 				});
 			} else {
 				userprofile._id = await Accounts.createUser({
-					username: userprofile.email,
+					username: userprofile.username,
 					email: userprofile.email
 				});
 			}
@@ -350,12 +350,29 @@ class UserProfileServerApi extends ProductServerBase<IUserProfile> {
 	}
 
 	async afterInsert(doc: IUserProfileEstendido, _context: IContext) {
-		if (Meteor.isServer) {
-			if (doc.password) {
-				Accounts.sendVerificationEmail(doc._id!);
+		if (!Meteor.isServer || !doc._id) return;
+
+		const markEmailAsVerified = () =>
+			Meteor.users.updateAsync(
+				{ _id: doc._id },
+				{
+					$set: {
+						'emails.0.verified': true
+					}
+				}
+			);
+
+		try {
+			const sendEmail = doc.password ? Accounts.sendVerificationEmail : Accounts.sendEnrollmentEmail;
+
+			if (process.env.MAIL_URL) {
+				await sendEmail.call(Accounts, doc._id);
 			} else {
-				Accounts.sendEnrollmentEmail(doc._id!);
+				await markEmailAsVerified();
 			}
+		} catch (error) {
+			console.error('Não foi possível enviar o email de verificação.', error);
+			await markEmailAsVerified();
 		}
 	}
 

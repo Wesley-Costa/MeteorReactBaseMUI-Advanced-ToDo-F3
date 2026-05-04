@@ -26,7 +26,7 @@ const resolveCreatorLabel = (taskCreatedBy?: string, taskAuthorName?: string): s
 const resolveAssignedLabel = (task: ITask): string => {
 	if (!task.assignedTo) return '';
 	if (task.assignedTo === Meteor.userId()) return 'Você';
-	return task.assignedToName || task.assignedTo;
+	return task.assignedToName || '';
 };
 
 const isTaskOwner = (task: ITask): boolean => task.createdBy === Meteor.userId();
@@ -60,7 +60,7 @@ const HomePage: React.FC = () => {
 
 	const currentUser = useTracker(() => Meteor.user(), []);
 	const firstName = (() => {
-		const username = currentUser?.username || currentUser?.emails?.[0]?.address || 'Usuário';
+		const username = currentUser?.username || 'Usuário';
 		return username.split(' ')[0] || username;
 	})();
 
