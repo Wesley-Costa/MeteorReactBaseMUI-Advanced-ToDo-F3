@@ -111,7 +111,9 @@ const TasksListStyles: ITasksListStyles = {
 		fontSize: 14
 	})),
 
-	TaskItem: styled(Box)<{ selected?: boolean }>(({ theme, selected }) => ({
+	TaskItem: styled(Box, {
+		shouldForwardProp: (prop) => prop !== 'selected'
+	})<{ selected?: boolean }>(({ theme, selected }) => ({
 		display: 'flex',
 		alignItems: 'center',
 		padding: theme.spacing(2),
@@ -127,7 +129,9 @@ const TasksListStyles: ITasksListStyles = {
 		}
 	})),
 
-	TaskCheckbox: styled('div')<{ completed?: boolean }>(({ theme, completed }) => ({
+	TaskCheckbox: styled('div', {
+		shouldForwardProp: (prop) => prop !== 'completed'
+	})<{ completed?: boolean }>(({ theme, completed }) => ({
 		width: 24,
 		height: 24,
 		borderRadius: '50%',
@@ -155,7 +159,9 @@ const TasksListStyles: ITasksListStyles = {
 		marginLeft: theme.spacing(1)
 	})),
 
-	TaskTitle: styled(Typography)<{ completed?: boolean }>(({ theme, completed }) => ({
+	TaskTitle: styled(Typography, {
+		shouldForwardProp: (prop) => prop !== 'completed'
+	})<{ completed?: boolean }>(({ theme, completed }) => ({
 		fontSize: 16,
 		fontWeight: 700,
 		color: completed ? theme.palette.text.disabled : theme.palette.text.primary,
@@ -183,7 +189,9 @@ const TasksListStyles: ITasksListStyles = {
 		}
 	})),
 
-	DetailPanel: styled(Box)<{ open?: boolean }>(({ theme, open }) => ({
+	DetailPanel: styled(Box, {
+		shouldForwardProp: (prop) => prop !== 'open'
+	})<{ open?: boolean }>(({ theme, open }) => ({
 		width: open ? '380px' : '0px',
 		minWidth: open ? '380px' : '0px',
 		overflow: 'hidden',
@@ -235,7 +243,9 @@ const TasksListStyles: ITasksListStyles = {
 		overflow: 'hidden'
 	})),
 
-	DetailStatusDot: styled(Box)<{ completed?: boolean }>(({ theme, completed }) => ({
+	DetailStatusDot: styled(Box, {
+		shouldForwardProp: (prop) => prop !== 'completed'
+	})<{ completed?: boolean }>(({ theme, completed }) => ({
 		width: 20,
 		height: 20,
 		borderRadius: '50%',

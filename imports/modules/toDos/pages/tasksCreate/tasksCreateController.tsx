@@ -9,6 +9,7 @@ import { ISchema } from '../../../../typings/ISchema';
 import { IMeteorError } from '../../../../typings/BoilerplateDefaultTypings';
 import { IOption } from '../../../../ui/components/InterfaceBaseSimpleFormComponent';
 import TasksCreateView from './tasksCreateView';
+import { userprofileData } from '/imports/libs/getUser';
 
 interface ITasksCreateControllerContext {
 	closePage: () => void;
@@ -29,24 +30,23 @@ const TasksCreateController = () => {
 
 	const usernameToIdMapRef = useRef<Record<string, string>>({});
 
-	const { userOptions, loadingUsers } = useTracker(() => {
+	const { userOptions, loading } = useTracker(() => {
 		const subHandle = Meteor.subscribe('userprofile.getListOfusers');
-		const users = subHandle.ready()
-			? Meteor.users.find({}, { fields: { _id: 1, username: 1, 'emails.address': 1 } }).fetch()
-			: [];
+		const userprofileCollection = userprofileData.collectionInstance;
+		const users = subHandle.ready() ? userprofileCollection.find({}).fetch() : [];
 
-		const userOptions: IOption[] = users.map((u) => {
-			const name = u.username || u.emails?.[0]?.address || u._id;
+		const options: IOption[] = users.map((u: any) => {
+			const name = u.username;
 			return { value: name, label: name };
 		});
 
 		usernameToIdMapRef.current = {};
-		users.forEach((u) => {
-			const name = u.username || u.emails?.[0]?.address || u._id;
+		users.forEach((u: any) => {
+			const name = u.username;
 			usernameToIdMapRef.current[name] = u._id;
 		});
 
-		return { userOptions, loadingUsers: !subHandle.ready() };
+		return { userOptions: options, loading: !subHandle.ready() };
 	}, []);
 
 	const closePage = useCallback(() => {
@@ -58,7 +58,7 @@ const TasksCreateController = () => {
 			const user = Meteor.user();
 			const now = new Date();
 
-			const assignedToName = doc.assignedTo ?? '';
+			const assignedToName = doc.assignedToName ?? '';
 			const assignedToId = usernameToIdMapRef.current[assignedToName] ?? '';
 
 			const enrichedDoc: ITask = {
@@ -98,7 +98,7 @@ const TasksCreateController = () => {
 			value={{
 				closePage,
 				document: {} as ITask,
-				loading: loadingUsers,
+				loading: loading,
 				schema: tasksApi.getSchema(),
 				onSubmit,
 				userOptions

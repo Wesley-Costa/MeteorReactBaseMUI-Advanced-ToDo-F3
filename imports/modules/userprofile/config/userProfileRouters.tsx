@@ -19,6 +19,6 @@ export const userProfileRouterList: (IRoute | null)[] = [
 		path: '/userprofile',
 		component: UserProfileContainer,
 		isProtected: true,
-		resources: [Recurso.USUARIO_VIEW]
+		resources: [Recurso.USUARIO_CREATE]
 	}
 ];

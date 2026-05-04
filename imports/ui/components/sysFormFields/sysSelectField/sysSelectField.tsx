@@ -1,4 +1,4 @@
-import React, { useContext, useRef, useState } from 'react';
+import React, { useContext, useRef, useState, useEffect } from 'react';
 import { IOption, ISysFormComponent } from '../../InterfaceBaseSimpleFormComponent';
 import Typography from '@mui/material/Typography';
 import FormControl from '@mui/material/FormControl';
@@ -72,6 +72,10 @@ export const SysSelectField: React.FC<ISysSelectFieldProps> = ({
 	const [visibleState, setVisibleState] = useState<boolean>(refObject?.current.isVisible ?? true);
 	const [errorState, setErrorState] = useState<string | undefined>(error);
 	const [optionsState, setOptionsState] = useState<Array<IOption> | undefined>(options);
+
+	useEffect(() => {
+		setOptionsState(options);
+	}, [options]);
 
 	if (inSysFormContext)
 		controllerSysForm.setInteractiveMethods({

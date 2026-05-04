@@ -54,7 +54,7 @@ const SignInStyles: ISignInStyles = {
 		flexDirection: 'column',
 		justifyContent: 'flex-start',
 		alignItems: 'center',
-		maxWidth: '400px'
+		maxWidth: '500px'
 	})),
 	FormWrapper: styled(Box)(({ theme }) => ({
 		width: '100%',

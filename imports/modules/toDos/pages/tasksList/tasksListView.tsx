@@ -1,6 +1,5 @@
 import React, { useContext, useState } from 'react';
 import { Typography, IconButton, Chip, Stack, Tooltip, Pagination } from '@mui/material';
-import { Meteor } from 'meteor/meteor';
 import { TasksListControllerContext } from './tasksListController';
 import TasksListStyles from './tasksListStyles';
 import SysIcon from '../../../../ui/components/sysIcon/sysIcon';
@@ -13,17 +12,11 @@ import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import SysLabelView from '../../../../ui/components/sysLabelView/sysLabelView';
 
 const {
-	PageWrapper, PageHeader, Container, TaskSection, TaskItem, TaskCheckbox, DetailPanelContent, TaskInfo, 
-	TaskTitle, TaskCreator, ActionButton, DetailPanel, DetailPanelHeader, DetailPanelFooter, DetailTitleRow, 
-	DetailStatusDot, DetailCreatorText, SearchWrapper, SectionHeader, SectionTitle, SectionCount, EmptySection, 
-	PaginationWrapper
+	PageWrapper, PageHeader, Container, TaskSection, TaskItem, TaskCheckbox, DetailPanelContent,
+	TaskInfo, TaskTitle, TaskCreator, ActionButton, DetailPanel, DetailPanelHeader, DetailPanelFooter,
+	DetailTitleRow, DetailStatusDot, DetailCreatorText, SearchWrapper, SectionHeader, SectionTitle, SectionCount,
+	EmptySection, PaginationWrapper
 } = TasksListStyles;
-
-const resolveAssignedLabel = (task: ITask): string => {
-	if (!task.assignedTo) return 'Não atribuída';
-	if (task.assignedTo === Meteor.userId()) return 'Você';
-	return task.assignedTo;
-};
 
 const TasksListView = () => {
 	const controller = useContext(TasksListControllerContext);
@@ -31,12 +24,12 @@ const TasksListView = () => {
 	const [openCollapsed, setOpenCollapsed] = useState(false);
 	const [completedCollapsed, setCompletedCollapsed] = useState(false);
 
-	const selectedTask = controller.tasks.find((t) => t._id === selectedTaskId) ?? null;
+	const selectedTask: ITask | null =
+		[...controller.openTasks, ...controller.completedTasks].find((t) => t._id === selectedTaskId) ?? null;
+
 	const isDetailPanelOpen = !!selectedTask;
 
-	const handleOpenTask = (id: string) => {
-		setSelectedTaskId((prev) => (prev === id ? null : id));
-	};
+	const handleOpenTask = (id: string) => setSelectedTaskId((prev) => (prev === id ? null : id));
 
 	const handleCloseDetailPanel = () => setSelectedTaskId(null);
 
@@ -54,9 +47,7 @@ const TasksListView = () => {
 
 			<TaskInfo>
 				<TaskTitle completed={task.status === 'completed'}>{task.title}</TaskTitle>
-				<TaskCreator>
-					Criada por: {task.createdBy === Meteor.userId() ? 'Você' : task.authorName || 'Desconhecido'}
-				</TaskCreator>
+				<TaskCreator>Criada por: {controller.resolveAuthorLabel(task)}</TaskCreator>
 			</TaskInfo>
 
 			<Stack direction="row" spacing={0.5}>
@@ -142,6 +133,7 @@ const TasksListView = () => {
 								) : (
 									controller.openTasks.map(renderTaskItem)
 								)}
+
 								{estimatedOpenPages > 1 && (
 									<PaginationWrapper>
 										<Pagination
@@ -174,6 +166,7 @@ const TasksListView = () => {
 								) : (
 									controller.completedTasks.map(renderTaskItem)
 								)}
+
 								{estimatedCompletedPages > 1 && (
 									<PaginationWrapper>
 										<Pagination
@@ -252,7 +245,7 @@ const TasksListView = () => {
 							<SysLabelView label="Criado em">
 								<Chip
 									size="small"
-									label={selectedTask.createdAt ? new Date(selectedTask.createdAt).toLocaleString() : '-'}
+									label={selectedTask.createdAt ? new Date(selectedTask.createdAt).toLocaleString('pt-BR') : '-'}
 									color="default"
 									variant="outlined"
 									icon={<SysIcon name="accessTime" />}
@@ -262,7 +255,7 @@ const TasksListView = () => {
 							<SysLabelView label="Atualizado em">
 								<Chip
 									size="small"
-									label={selectedTask.updatedAt ? new Date(selectedTask.updatedAt).toLocaleString() : '-'}
+									label={selectedTask.updatedAt ? new Date(selectedTask.updatedAt).toLocaleString('pt-BR') : '-'}
 									color="default"
 									variant="outlined"
 									icon={<SysIcon name="update" />}
@@ -272,7 +265,7 @@ const TasksListView = () => {
 							<SysLabelView label="Atribuído a">
 								<Chip
 									size="small"
-									label={resolveAssignedLabel(selectedTask)}
+									label={controller.resolveAssignedLabel(selectedTask)}
 									color="default"
 									variant="outlined"
 									icon={<AssignmentIndIcon />}
@@ -298,10 +291,7 @@ const TasksListView = () => {
 								onClick={() => controller.onTaskClick(selectedTask._id!)}>
 								Editar tarefa
 							</SysButton>
-							<DetailCreatorText>
-								Criada por:{' '}
-								{selectedTask.createdBy === Meteor.userId() ? 'Você' : selectedTask.authorName || 'Desconhecido'}
-							</DetailCreatorText>
+							<DetailCreatorText>Criada por: {controller.resolveAuthorLabel(selectedTask)}</DetailCreatorText>
 						</DetailPanelFooter>
 					</>
 				)}

@@ -2,6 +2,7 @@ import { IDoc } from '../../../typings/IDoc';
 import { ISchema } from '../../../typings/ISchema';
 
 export type ToDoStatus = 'open' | 'completed';
+
 export interface ITask extends IDoc {
 	title: string;
 	description?: string;
@@ -48,13 +49,13 @@ export const tasksSch: ISchema<ITask> = {
 	},
 	assignedTo: {
 		type: String,
-		label: 'Atribuído a',
+		label: 'ID do usuário atribuído',
 		defaultValue: '',
 		optional: true
 	},
 	assignedToName: {
 		type: String,
-		label: 'Nome do usuário atribuído',
+		label: 'Atribuído a',
 		defaultValue: '',
 		optional: true
 	},
@@ -70,14 +71,14 @@ export const tasksSch: ISchema<ITask> = {
 		defaultValue: '',
 		optional: false,
 		options: () => [
-      { value: 'open', label: 'Não concluída' },
-      { value: 'completed', label: 'Concluída' },
-    ]
+			{ value: 'open', label: 'Não concluída' },
+			{ value: 'completed', label: 'Concluída' }
+		]
 	},
 	personal: {
-    type: Boolean,
-    label: 'Pessoal',
-    defaultValue: false,
-    optional: false,
-  },
+		type: Boolean,
+		label: 'Pessoal',
+		defaultValue: false,
+		optional: false
+	}
 };
