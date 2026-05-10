@@ -35,8 +35,9 @@ const TasksListStyles: ITasksListStyles = {
 		display: 'flex',
 		flexDirection: 'row',
 		width: '100%',
-		minHeight: 'calc(100vh - 56px)',
-		overflow: 'hidden'
+		height: 'calc(100vh - 56px)',
+		overflow: 'hidden',
+		position: 'relative'
 	})),
 
 	PageHeader: styled(Box)(({ theme }) => ({
@@ -44,7 +45,8 @@ const TasksListStyles: ITasksListStyles = {
 		alignItems: 'center',
 		justifyContent: 'space-between',
 		width: '100%',
-		marginBottom: theme.spacing(1)
+		marginBottom: theme.spacing(1),
+		flexShrink: 0
 	})),
 
 	Container: styled(Box)(({ theme }) => ({
@@ -56,13 +58,19 @@ const TasksListStyles: ITasksListStyles = {
 		padding: theme.spacing(4),
 		transition: 'all 0.3s ease',
 		minWidth: 0,
-		maxWidth: '1200px',
-		margin: '0 auto'
+		overflowY: 'auto',
+		overflowX: 'hidden',
+		height: '100%',
+		'& > *': {
+			maxWidth: '1200px',
+			width: '100%'
+		}
 	})),
 
 	SearchWrapper: styled(Box)(({ theme }) => ({
 		width: '100%',
 		marginBottom: theme.spacing(1),
+		flexShrink: 0,
 		'& .MuiFormControl-root': {
 			margin: 0
 		}
@@ -72,7 +80,8 @@ const TasksListStyles: ITasksListStyles = {
 		display: 'flex',
 		flexDirection: 'column',
 		width: '100%',
-		marginTop: theme.spacing(3)
+		marginTop: theme.spacing(3),
+		paddingBottom: theme.spacing(4)
 	})),
 
 	SectionHeader: styled(Box)(({ theme }) => ({
@@ -199,10 +208,9 @@ const TasksListStyles: ITasksListStyles = {
 		flexDirection: 'column',
 		borderLeft: open ? `1px solid ${theme.palette.divider}` : 'none',
 		backgroundColor: theme.palette.background.paper,
-		transition: 'all 0.3s ease',
-		position: 'sticky',
-		top: '56px',
-		height: 'calc(100vh - 56px)'
+		transition: 'width 0.3s ease, min-width 0.3s ease',
+		height: '100%',
+		flexShrink: 0
 	})),
 
 	DetailPanelHeader: styled(Box)(({ theme }) => ({

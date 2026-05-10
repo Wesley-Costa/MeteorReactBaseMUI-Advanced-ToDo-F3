@@ -7,7 +7,6 @@ import SysFormButton from '../../../ui/components/sysFormFields/sysFormButton/sy
 import { signInSchema } from './signinsch';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
 import SysIcon from '../../../ui/components/sysIcon/sysIcon';
 import AuthContext, { IAuthContext } from '/imports/app/authProvider/authContext';
 import AppLayoutContext from '/imports/app/appLayoutProvider/appLayoutContext';
@@ -16,7 +15,7 @@ const SignInPage: React.FC = () => {
 	const { showNotification } = useContext(AppLayoutContext);
 	const { user, signIn } = useContext<IAuthContext>(AuthContext);
 	const navigate = useNavigate();
-	const { Container, Content, FormContainer, FormWrapper } = SignInStyles;
+	const { Container, Content, FormContainer, FormWrapper, Title, TitleBracket, Logo, LinkButton } = SignInStyles;
 
 	const handleSubmit = ({ email, password }: { email: string; password: string }) => {
 		signIn(email, password, (err) => {
@@ -44,15 +43,11 @@ const SignInPage: React.FC = () => {
 	return (
 		<Container>
 			<Content>
-				<Typography variant="h1" display={'inline-flex'} gap={1}>
-					<Typography variant="inherit" color={(theme) => theme.palette.sysText?.tertiary}>
-						{'{'}
-					</Typography>
+				<Title variant="h1">
+					<TitleBracket variant="inherit">{'{'}</TitleBracket>
 					ToDo List
-					<Typography variant="inherit" color="sysText.tertiary">
-						{'}'}
-					</Typography>
-				</Typography>
+					<TitleBracket variant="inherit">{'}'}</TitleBracket>
+				</Title>
 
 				<FormContainer>
 					<Typography variant="body2" align="center" sx={{ fontSize: '0.95rem' }}>
@@ -67,18 +62,18 @@ const SignInPage: React.FC = () => {
 							<SysFormButton variant="contained" color="primary" endIcon={<SysIcon name={'arrowForward'} />}>
 								Entrar
 							</SysFormButton>
-							<Button variant="text" sx={{ alignSelf: 'center' }} onClick={handleSignUp}>
+							<LinkButton variant="text" onClick={handleSignUp}>
 								<Typography variant="link">Novo por aqui? Cadastre-se</Typography>
-							</Button>
-							<Button variant="text" sx={{ alignSelf: 'center' }} onClick={handleForgotPassword}>
+							</LinkButton>
+							<LinkButton variant="text" onClick={handleForgotPassword}>
 								<Typography variant="link">Esqueceu a senha? Clique aqui</Typography>
-							</Button>
+							</LinkButton>
 							<Box />
 						</FormWrapper>
 					</SysForm>
 				</FormContainer>
 
-				<Box component="img" src="/images/wireframe/synergia-logo.svg" sx={{ width: '100%', maxWidth: '400px' }} />
+				<Logo component="img" src="/images/wireframe/synergia-logo.svg" />
 			</Content>
 		</Container>
 	);

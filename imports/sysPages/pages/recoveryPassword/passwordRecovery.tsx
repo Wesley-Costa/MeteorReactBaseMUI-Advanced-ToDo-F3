@@ -1,24 +1,18 @@
-// login page overrides the form’s submit event and call Meteor’s loginWithPassword()
-// Authentication errors modify the component’s state to be displayed
 import React, { useContext } from 'react';
 import { Meteor } from 'meteor/meteor';
 import { Accounts } from 'meteor/accounts-base';
 import TextField from '/imports/ui/components/SimpleFormFields/TextField/TextField';
 import Button from '@mui/material/Button';
 import SimpleForm from '/imports/ui/components/SimpleForm/SimpleForm';
-
-
 import { IDefaultContainerProps } from '/imports/typings/BoilerplateDefaultTypings';
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-
 import SignInStyles from '../signIn/signInStyles';
 import { useNavigate } from 'react-router-dom';
 import { sysSizing } from '/imports/ui/materialui/styles';
 import SysIcon from '/imports/ui/components/sysIcon/sysIcon';
 import AppLayoutContext from '/imports/app/appLayoutProvider/appLayoutContext';
-
 
 export const PasswordRecovery = (props: IDefaultContainerProps) => {
 	const [loading, setLoading] = React.useState<boolean>(false);
@@ -26,12 +20,7 @@ export const PasswordRecovery = (props: IDefaultContainerProps) => {
 
 	const { showNotification } = useContext(AppLayoutContext);
 	const navigate = useNavigate();
-  const {
-    Container,
-    Content,
-    FormContainer,
-    FormWrapper,
-  } = SignInStyles;
+	const { Container, Content, FormContainer, FormWrapper, Title, TitleBracket, Logo, DescriptionText } = SignInStyles;
 
 	const handleSubmit = (doc: { email: string }) => {
 		const { email } = doc;
@@ -79,26 +68,23 @@ export const PasswordRecovery = (props: IDefaultContainerProps) => {
 	return (
 		<Container>
 			<Content>
-				<Typography variant="h1" display={'inline-flex'} gap={1}>
-					<Typography variant="inherit" color={(theme) => theme.palette.sysText?.tertiary}>
-						{'{'}
-					</Typography>
-					ToDo List 
-					<Typography variant="inherit" color="sysText.tertiary">
-						{'}'}
-					</Typography>
-				</Typography>
+				<Title variant="h1">
+					<TitleBracket variant="inherit">{'{'}</TitleBracket>
+					ToDo List
+					<TitleBracket variant="inherit">{'}'}</TitleBracket>
+				</Title>
 
 				<FormContainer>
-					<Typography variant="h5" color={(theme) => theme.palette.sysText?.title}>
+					<Typography variant="h5" color={(theme: any) => theme.palette.sysText?.title}>
 						{!msg ? 'Esqueceu sua senha?' : 'Agora é só aguardar!'}
 					</Typography>
 
-					<Typography variant="body1" color={(theme) => theme.palette.sysText?.body} sx={{ textAlign: 'center' }}>
+					<DescriptionText variant="body1" color={(theme: any) => theme.palette.sysText?.body}>
 						{!msg
 							? 'Confirme seu e-mail abaixo para receber um link de redefinição da sua senha'
 							: 'Caso o e-mail informado esteja cadastrado no sistema, enviaremos um link para a redefinição de sua senha'}
-					</Typography>
+					</DescriptionText>
+
 					<SimpleForm schema={schema} onSubmit={handleSubmit} styles={{ display: !msg ? 'block' : 'none' }}>
 						<FormWrapper>
 							<TextField
@@ -132,18 +118,19 @@ export const PasswordRecovery = (props: IDefaultContainerProps) => {
 							</Box>
 						</FormWrapper>
 					</SimpleForm>
+
 					<Button
 						onClick={() => navigate('/')}
 						variant="contained"
 						color="primary"
 						id="cancelar"
-						startIcon={<SysIcon name={'arrowBack'}/>}
+						startIcon={<SysIcon name={'arrowBack'} />}
 						sx={{ transition: 'all 0.3s ease', display: !msg ? 'none' : 'flex' }}>
 						{loading ? <CircularProgress size={24} /> : 'Voltar para o Login'}
 					</Button>
 				</FormContainer>
 
-				<Box component="img" src="/images/wireframe/synergia-logo.svg" sx={{ width: '100%', maxWidth: '400px' }} />
+				<Logo component="img" src="/images/wireframe/synergia-logo.svg" />
 			</Content>
 		</Container>
 	);

@@ -12,11 +12,11 @@ import { SysLoading } from '/imports/ui/components/sysLoading/sysLoading';
 import { SysButton } from '/imports/ui/components/SimpleFormFields/SysButton/SysButton';
 
 const {
-	Container, Header, HeaderTitle, HeaderSubtitle, SectionWrapper, SectionLabel, SectionLabelTitle, ListContainer, 
-	RemainingListContainer, TaskListItem, TaskListItemIcon, TaskListItemButton, TaskSecondaryStack, TaskTitle, TaskCreatorText, 
-	TaskCreatorUnderline, TaskCheckbox, TaskActions, ActionButton, StateContainer, TaskModal, TaskModalHeader, TaskModalTitleRow, 
-	TaskModalTitle, TaskModalStatusChip, TaskModalMeta, TaskModalSection, TaskModalSectionLabel, TaskModalDescriptionBody, 
-	TaskModalDescriptionText, TaskModalInfoRow, TaskModalInfoLabel, TaskModalInfoAvatar, TaskModalInfoValue, TaskModalActions, 
+	Container, Header, HeaderTitle, HeaderSubtitle, SectionWrapper, SectionLabel, SectionLabelTitle, ListContainer,
+	RemainingListContainer, TaskListItem, TaskListItemIcon, TaskListItemButton, TaskSecondaryStack, TaskTitle, TaskCreatorText,
+	TaskCreatorUnderline, TaskCheckbox, TaskActions, ActionButton, StateContainer, TaskModal, TaskModalHeader, TaskModalTitleRow,
+	TaskModalTitle, TaskModalStatusChip, TaskModalMeta, TaskModalSection, TaskModalSectionLabel, TaskModalDescriptionBody,
+	TaskModalDescriptionText, TaskModalInfoRow, TaskModalInfoLabel, TaskModalInfoAvatar, TaskModalInfoValue, TaskModalActions,
 	FooterSection, GoToTasksButton, GoToTasksIcon
 } = HomeStyles;
 
@@ -28,8 +28,6 @@ const resolveAssignedLabel = (task: ITask): string => {
 	if (task.assignedTo === Meteor.userId()) return 'Você';
 	return task.assignedToName || '';
 };
-
-const isTaskOwner = (task: ITask): boolean => task.createdBy === Meteor.userId();
 
 const getInitials = (name?: string): string => {
 	if (!name) return '?';
@@ -91,15 +89,15 @@ const HomePage: React.FC = () => {
 	const handleEditTask = useCallback(
 		(task: ITask) => {
 			if (!task?._id) return;
-			if (task.createdBy && task.createdBy !== Meteor.userId()) {
+			if (!tasksApi.isOwnerOrAdmin(task)) {
 				showNotification({
 					type: 'error',
 					title: 'Permissão negada',
-					message: 'Somente o criador pode editar esta tarefa.'
+					message: 'Somente o criador ou administrador pode editar esta tarefa.'
 				});
 				return;
 			}
-			navigate(`/tasks/edit/${task._id}`);
+			navigate('/tasks/edit', { state: { taskId: task._id } });
 		},
 		[navigate, showNotification]
 	);
@@ -107,11 +105,11 @@ const HomePage: React.FC = () => {
 	const handleDeleteTask = useCallback(
 		(task: ITask) => {
 			if (!task?._id) return;
-			if (task.createdBy && task.createdBy !== Meteor.userId()) {
+			if (!tasksApi.isOwnerOrAdmin(task)) {
 				showNotification({
 					type: 'error',
 					title: 'Permissão negada',
-					message: 'Somente o criador pode remover esta tarefa.'
+					message: 'Somente o criador ou administrador pode remover esta tarefa.'
 				});
 				return;
 			}
@@ -202,7 +200,7 @@ const HomePage: React.FC = () => {
 		return (
 			<Fragment key={task._id || idx}>
 				<TaskListItem
-					secondaryAction={isTaskOwner(task) ? renderTaskActions(task, isLoading) : undefined}
+					secondaryAction={tasksApi.isOwnerOrAdmin(task) ? renderTaskActions(task, isLoading) : undefined}
 					disablePadding>
 					<TaskListItemIcon>
 						<TaskCheckbox
@@ -242,7 +240,7 @@ const HomePage: React.FC = () => {
 		const creatorInitials = getInitials(creatorLabel === 'Você' ? firstName : creatorLabel);
 		const assignedLabel = resolveAssignedLabel(selectedTask);
 		const assigneeInitials = getInitials(assignedLabel === 'Você' ? firstName : assignedLabel);
-		const isOwner = isTaskOwner(selectedTask);
+		const canEditOrDelete = tasksApi.isOwnerOrAdmin(selectedTask);
 
 		return (
 			<TaskModal open={isModalOpen} onClose={handleCloseModal} maxWidth={false}>
@@ -301,7 +299,7 @@ const HomePage: React.FC = () => {
 				</DialogContent>
 
 				<TaskModalActions>
-					{isOwner && (
+					{canEditOrDelete && (
 						<SysButton
 							variant="outlined"
 							size="small"

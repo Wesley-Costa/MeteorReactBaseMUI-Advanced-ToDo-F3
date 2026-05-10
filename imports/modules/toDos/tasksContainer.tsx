@@ -1,6 +1,6 @@
 import React from 'react';
 import { IDefaultContainerProps } from '../../typings/BoilerplateDefaultTypings';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import TasksCreateController from './pages/tasksCreate/tasksCreateController';
 import TasksEditController from './pages/tasksEdit/tasksEditController';
 import TasksListController from './pages/tasksList/tasksListController';
@@ -13,9 +13,9 @@ export interface ITasksModuleContext {
 export const TasksModuleContext = React.createContext<ITasksModuleContext>({});
 
 const TasksContainer = (props: IDefaultContainerProps) => {
-    const { screenState, taskId } = useParams();
-
-    const state = screenState ?? props.screenState;
+    const { taskId } = useParams();
+    const location = useLocation();
+    const state = location.pathname.split('/')[2] ?? props.screenState;
     const id = taskId ?? props.id;
 
     const renderPage = () => {

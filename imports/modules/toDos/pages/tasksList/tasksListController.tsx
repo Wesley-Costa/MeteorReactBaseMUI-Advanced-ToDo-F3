@@ -27,6 +27,7 @@ interface ITasksListControllerContext {
 	onTaskCheckboxClick: (e: React.MouseEvent, id: string) => void;
 	resolveAssignedLabel: (task: ITask) => string;
 	resolveAuthorLabel: (task: ITask) => string;
+	isOwnerOrAdmin: (task: ITask) => boolean;
 }
 
 export const TasksListControllerContext = React.createContext<ITasksListControllerContext>(
@@ -64,6 +65,8 @@ const TasksListController = () => {
 			{ skip: (completedPage - 1) * PAGE_SIZE, limit: PAGE_SIZE + 1 }
 		);
 
+		Meteor.subscribe('userprofile.getListOfusers');
+
 		const isReady = !!openSub && openSub.ready() && !!completedSub && completedSub.ready();
 
 		if (!isReady) {
@@ -94,7 +97,11 @@ const TasksListController = () => {
 	const onCompletedPageChange = useCallback((page: number) => setCompletedPage(Math.max(1, page)), []);
 	const onSearchChange = handleSearchChange;
 	const onAddTaskClick = useCallback(() => navigate('/tasks/create'), [navigate]);
-	const onTaskClick = useCallback((id: string) => navigate(`/tasks/edit/${id}`), [navigate]);
+
+	const onTaskClick = useCallback(
+		(id: string) => navigate('/tasks/edit', { state: { taskId: id } }),
+		[navigate]
+	);
 
 	const resolveAssignedLabel = useCallback((task: ITask): string => {
 		if (!task.assignedTo && !task.assignedToName) return 'Não atribuída';
@@ -159,6 +166,11 @@ const TasksListController = () => {
 		[tasks, showNotification]
 	);
 
+	const isOwnerOrAdmin = useCallback(
+		(task: ITask) => tasksApi.isOwnerOrAdmin(task),
+		[]
+	);
+
 	const providerValues: ITasksListControllerContext = useMemo(
 		() => ({
 			openTasks,
@@ -178,7 +190,8 @@ const TasksListController = () => {
 			onDeleteTask,
 			onTaskCheckboxClick,
 			resolveAssignedLabel,
-			resolveAuthorLabel
+			resolveAuthorLabel,
+			isOwnerOrAdmin
 		}),
 		[
 			openTasks,
@@ -198,7 +211,8 @@ const TasksListController = () => {
 			onDeleteTask,
 			onTaskCheckboxClick,
 			resolveAssignedLabel,
-			resolveAuthorLabel
+			resolveAuthorLabel,
+			isOwnerOrAdmin
 		]
 	);
 

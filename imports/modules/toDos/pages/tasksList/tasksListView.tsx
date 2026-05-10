@@ -50,26 +50,28 @@ const TasksListView = () => {
 				<TaskCreator>Criada por: {controller.resolveAuthorLabel(task)}</TaskCreator>
 			</TaskInfo>
 
-			<Stack direction="row" spacing={0.5}>
-				<Tooltip title="Editar">
-					<ActionButton
-						onClick={(e: React.MouseEvent) => {
-							e.stopPropagation();
-							controller.onTaskClick(task._id!);
-						}}>
-						<SysIcon name="edit" />
-					</ActionButton>
-				</Tooltip>
-				<Tooltip title="Excluir">
-					<ActionButton
-						onClick={(e: React.MouseEvent) => {
-							e.stopPropagation();
-							controller.onDeleteTask(task);
-						}}>
-						<SysIcon name="delete" />
-					</ActionButton>
-				</Tooltip>
-			</Stack>
+			{controller.isOwnerOrAdmin(task) && (
+				<Stack direction="row" spacing={0.5}>
+					<Tooltip title="Editar">
+						<ActionButton
+							onClick={(e: React.MouseEvent) => {
+								e.stopPropagation();
+								controller.onTaskClick(task._id!);
+							}}>
+							<SysIcon name="edit" />
+						</ActionButton>
+					</Tooltip>
+					<Tooltip title="Excluir">
+						<ActionButton
+							onClick={(e: React.MouseEvent) => {
+								e.stopPropagation();
+								controller.onDeleteTask(task);
+							}}>
+							<SysIcon name="delete" />
+						</ActionButton>
+					</Tooltip>
+				</Stack>
+			)}
 		</TaskItem>
 	);
 
@@ -118,7 +120,7 @@ const TasksListView = () => {
 					<TaskSection>
 						<SectionHeader onClick={() => setOpenCollapsed((v) => !v)}>
 							<SysIcon name={openCollapsed ? 'chevronRight' : 'expandMore'} />
-							<SectionTitle variant="subtitle1">Não Concluídas</SectionTitle>
+							<SectionTitle variant="subtitle1">Pendente</SectionTitle>
 							<SectionCount label={controller.openTasks.length} size="small" />
 						</SectionHeader>
 
@@ -205,17 +207,19 @@ const TasksListView = () => {
 							</Tooltip>
 
 							<Stack direction="row" spacing={0.5} flexShrink={0}>
-								<Tooltip title="Excluir tarefa">
-									<IconButton
-										size="small"
-										onClick={() => {
-											handleCloseDetailPanel();
-											controller.onDeleteTask(selectedTask);
-										}}
-										aria-label="Excluir tarefa">
-										<SysIcon name="delete" />
-									</IconButton>
-								</Tooltip>
+								{controller.isOwnerOrAdmin(selectedTask) && (
+									<Tooltip title="Excluir tarefa">
+										<IconButton
+											size="small"
+											onClick={() => {
+												handleCloseDetailPanel();
+												controller.onDeleteTask(selectedTask);
+											}}
+											aria-label="Excluir tarefa">
+											<SysIcon name="delete" />
+										</IconButton>
+									</Tooltip>
+								)}
 								<Tooltip title="Fechar">
 									<IconButton size="small" onClick={handleCloseDetailPanel} aria-label="Fechar">
 										<SysIcon name="close" />
@@ -284,13 +288,15 @@ const TasksListView = () => {
 						</DetailPanelContent>
 
 						<DetailPanelFooter>
-							<SysButton
-								fullWidth
-								variant="outlined"
-								startIcon={<SysIcon name="edit" />}
-								onClick={() => controller.onTaskClick(selectedTask._id!)}>
-								Editar tarefa
-							</SysButton>
+							{controller.isOwnerOrAdmin(selectedTask) && (
+								<SysButton
+									fullWidth
+									variant="outlined"
+									startIcon={<SysIcon name="edit" />}
+									onClick={() => controller.onTaskClick(selectedTask._id!)}>
+									Editar tarefa
+								</SysButton>
+							)}
 							<DetailCreatorText>Criada por: {controller.resolveAuthorLabel(selectedTask)}</DetailCreatorText>
 						</DetailPanelFooter>
 					</>

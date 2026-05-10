@@ -5,7 +5,8 @@ import { IContext } from '../../../typings/IContext';
 import { Meteor } from 'meteor/meteor';
 import { check, Match } from 'meteor/check';
 import { escapeRegExp } from 'lodash';
-import { RoleType } from '../../../security/config/roleType';
+import { EnumUserRoles } from '/imports/modules/userprofile/api/enumUser';
+import { userprofileServerApi } from '/imports/modules/userprofile/api/userProfileServerApi';
 
 class TasksServerApi extends ProductServerBase<ITask> {
 	constructor() {
@@ -110,7 +111,7 @@ class TasksServerApi extends ProductServerBase<ITask> {
 			);
 		});
 
-		this.addPublication('edit', function (this: any, filter = {}) {
+		this.addPublication('edit', async function (this: any, filter = {}) {
 			const userId = this.userId;
 
 			if (!userId) {
@@ -123,7 +124,14 @@ class TasksServerApi extends ProductServerBase<ITask> {
 				return self.getCollectionInstance().find({ _id: 'EMPTY' });
 			}
 
-			return self.defaultDetailCollectionPublication(filter, {
+			const userProfile = await userprofileServerApi.getCollectionInstance().findOneAsync({ _id: userId });
+
+			const roles: string[] = (userProfile as any)?.roles ?? [];
+			const isAdmin = roles.includes(EnumUserRoles.ADMINISTRADOR);
+
+			const permissionFilter = isAdmin ? filter : { ...filter, $or: [{ createdBy: userId }, { assignedTo: userId }] };
+
+			return self.defaultDetailCollectionPublication(permissionFilter, {
 				projection: {
 					title: 1,
 					description: 1,
@@ -140,6 +148,13 @@ class TasksServerApi extends ProductServerBase<ITask> {
 		});
 	}
 
+	private async isAdminUser(userId: string): Promise<boolean> {
+		const userProfile = await userprofileServerApi.getCollectionInstance().findOneAsync({ _id: userId });
+
+		const roles: string[] = (userProfile as any)?.roles ?? [];
+		return roles.includes(EnumUserRoles.ADMINISTRADOR);
+	}
+
 	async beforeInsert(_docObj: Partial<ITask>, _context: IContext): Promise<boolean> {
 		const userId = _context.user?._id;
 
@@ -147,16 +162,20 @@ class TasksServerApi extends ProductServerBase<ITask> {
 			throw new Meteor.Error('forbidden', 'Você precisa estar autenticado para realizar esta ação.');
 		}
 
-		const user = await Meteor.users.findOneAsync({ _id: userId });
+		const userProfile = await userprofileServerApi.getCollectionInstance().findOneAsync({ _id: userId });
+
 		_docObj.createdBy = userId;
-		_docObj.authorName = (user?.profile as any)?.name || 'Desconhecido';
+		_docObj.authorName = (userProfile as any)?.username;
 
 		if (_docObj.assignedTo) {
-			const assignedUser = await Meteor.users.findOneAsync({ _id: _docObj.assignedTo });
-			if (!assignedUser) {
+			const assignedProfile = await userprofileServerApi
+				.getCollectionInstance()
+				.findOneAsync({ _id: _docObj.assignedTo });
+
+			if (!assignedProfile) {
 				throw new Meteor.Error('invalid-user', 'Usuário atribuído não encontrado.');
 			}
-			_docObj.assignedToName = (assignedUser.profile as any)?.name || 'Desconhecido';
+			_docObj.assignedToName = (assignedProfile as any)?.username;
 		} else {
 			_docObj.assignedToName = undefined;
 		}
@@ -181,7 +200,7 @@ class TasksServerApi extends ProductServerBase<ITask> {
 			throw new Meteor.Error('not-found', 'Tarefa não encontrada.');
 		}
 
-		const isAdmin = (_context.user as any)?.profile?.perfil === RoleType.ADMINISTRADOR;
+		const isAdmin = await this.isAdminUser(userId);
 		if (!isAdmin && existingDoc.createdBy && existingDoc.createdBy !== userId) {
 			throw new Meteor.Error('forbidden', 'Somente o criador ou administrador podem alterar esta tarefa.');
 		}
@@ -190,11 +209,14 @@ class TasksServerApi extends ProductServerBase<ITask> {
 		_docObj.authorName = existingDoc.authorName;
 
 		if (_docObj.assignedTo && _docObj.assignedTo !== existingDoc.assignedTo) {
-			const assignedUser = await Meteor.users.findOneAsync({ _id: _docObj.assignedTo });
-			if (!assignedUser) {
+			const assignedProfile = await userprofileServerApi
+				.getCollectionInstance()
+				.findOneAsync({ _id: _docObj.assignedTo });
+
+			if (!assignedProfile) {
 				throw new Meteor.Error('invalid-user', 'Usuário atribuído não encontrado.');
 			}
-			_docObj.assignedToName = (assignedUser.profile as any)?.name || 'Desconhecido';
+			_docObj.assignedToName = (assignedProfile as any)?.name || (assignedProfile as any)?.username || 'Desconhecido';
 		} else if (!_docObj.assignedTo) {
 			_docObj.assignedToName = undefined;
 		} else {
@@ -221,7 +243,7 @@ class TasksServerApi extends ProductServerBase<ITask> {
 			throw new Meteor.Error('not-found', 'Tarefa não encontrada.');
 		}
 
-		const isAdmin = (_context.user as any)?.profile?.perfil === RoleType.ADMINISTRADOR;
+		const isAdmin = await this.isAdminUser(userId);
 		if (!isAdmin && existingDoc.createdBy && existingDoc.createdBy !== userId) {
 			throw new Meteor.Error('forbidden', 'Somente o criador ou administrador podem remover esta tarefa.');
 		}

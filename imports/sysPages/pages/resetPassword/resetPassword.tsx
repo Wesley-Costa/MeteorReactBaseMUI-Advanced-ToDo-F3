@@ -1,5 +1,3 @@
-// login page overrides the form’s submit event and call Meteor’s loginWithPassword()
-// Authentication errors modify the component’s state to be displayed
 import React, { useContext } from 'react';
 import { Accounts } from 'meteor/accounts-base';
 import TextField from '../../../ui/components/SimpleFormFields/TextField/TextField';
@@ -20,16 +18,12 @@ export const ResetPassword = (props: IDefaultContainerProps) => {
 	const [loading, setLoading] = React.useState<boolean>(false);
 
 	const { token } = useParams();
-  const {
-    Container,
-    Content,
-    FormContainer,
-    FormWrapper,
-  } = SignInStyles;
+	const { Container, Content, FormContainer, FormWrapper, Title, TitleBracket, Logo } = SignInStyles;
 
 	const handleSubmit = (doc: { password: string; repassword: string }) => {
 		const { password, repassword } = doc;
 		setLoading(true);
+
 		if (password !== repassword) {
 			showNotification &&
 				showNotification({
@@ -70,15 +64,11 @@ export const ResetPassword = (props: IDefaultContainerProps) => {
 	return (
 		<Container>
 			<Content>
-				<Typography variant="h1" display={'inline-flex'} gap={1}>
-					<Typography variant="inherit" color={(theme) => theme.palette.sysText?.tertiary}>
-						{'{'}
-					</Typography>
-					ToDo List 
-					<Typography variant="inherit" color="sysText.tertiary">
-						{'}'}
-					</Typography>
-				</Typography>
+				<Title variant="h1">
+					<TitleBracket variant="inherit">{'{'}</TitleBracket>
+					ToDo List
+					<TitleBracket variant="inherit">{'}'}</TitleBracket>
+				</Title>
 
 				<FormContainer>
 					<Typography variant="h5">Redefinição de senha</Typography>
@@ -114,7 +104,7 @@ export const ResetPassword = (props: IDefaultContainerProps) => {
 					</SimpleForm>
 				</FormContainer>
 
-				<Box component="img" src="/images/wireframe/synergia-logo.svg" sx={{ width: '100%', maxWidth: '400px' }} />
+				<Logo component="img" src="/images/wireframe/synergia-logo.svg" />
 			</Content>
 		</Container>
 	);
