@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import { Typography, IconButton, Chip, Stack, Tooltip, Pagination } from '@mui/material';
 import { TasksListControllerContext } from './tasksListController';
 import TasksListStyles from './tasksListStyles';
@@ -24,59 +24,67 @@ const TasksListView = () => {
 	const [openCollapsed, setOpenCollapsed] = useState(false);
 	const [completedCollapsed, setCompletedCollapsed] = useState(false);
 
-	const selectedTask: ITask | null =
-		[...controller.openTasks, ...controller.completedTasks].find((t) => t._id === selectedTaskId) ?? null;
+	const allTasks = useMemo(
+		() => [...controller.openTasks, ...controller.completedTasks],
+		[controller.openTasks, controller.completedTasks]
+	);
 
+	const selectedTask: ITask | null = allTasks.find((t) => t._id === selectedTaskId) ?? null;
 	const isDetailPanelOpen = !!selectedTask;
 
 	const handleOpenTask = (id: string) => setSelectedTaskId((prev) => (prev === id ? null : id));
-
 	const handleCloseDetailPanel = () => setSelectedTaskId(null);
 
-	const renderTaskItem = (task: ITask) => (
-		<TaskItem key={task._id} selected={selectedTaskId === task._id} onClick={() => handleOpenTask(task._id!)}>
-			<Tooltip title={task.status === 'completed' ? 'Marcar como pendente' : 'Marcar como concluída'} placement="top">
-				<TaskCheckbox
-					completed={task.status === 'completed'}
-					onClick={(e: React.MouseEvent) => {
-						e.stopPropagation();
-						controller.onTaskCheckboxClick(e, task._id!);
-					}}
-				/>
-			</Tooltip>
+	const renderTaskItem = (task: ITask) => {
+		const canAct = task._id ? (controller.permissions[task._id] ?? false) : false;
 
-			<TaskInfo>
-				<TaskTitle completed={task.status === 'completed'}>{task.title}</TaskTitle>
-				<TaskCreator>Criada por: {controller.resolveAuthorLabel(task)}</TaskCreator>
-			</TaskInfo>
+		return (
+			<TaskItem key={task._id} selected={selectedTaskId === task._id} onClick={() => handleOpenTask(task._id!)}>
+				<Tooltip title={task.status === 'completed' ? 'Marcar como pendente' : 'Marcar como concluída'} placement="top">
+					<TaskCheckbox
+						completed={task.status === 'completed'}
+						onClick={(e: React.MouseEvent) => {
+							e.stopPropagation();
+							controller.onTaskCheckboxClick(e, task._id!);
+						}}
+					/>
+				</Tooltip>
 
-			{controller.isOwnerOrAdmin(task) && (
-				<Stack direction="row" spacing={0.5}>
-					<Tooltip title="Editar">
-						<ActionButton
-							onClick={(e: React.MouseEvent) => {
-								e.stopPropagation();
-								controller.onTaskClick(task._id!);
-							}}>
-							<SysIcon name="edit" />
-						</ActionButton>
-					</Tooltip>
-					<Tooltip title="Excluir">
-						<ActionButton
-							onClick={(e: React.MouseEvent) => {
-								e.stopPropagation();
-								controller.onDeleteTask(task);
-							}}>
-							<SysIcon name="delete" />
-						</ActionButton>
-					</Tooltip>
-				</Stack>
-			)}
-		</TaskItem>
-	);
+				<TaskInfo>
+					<TaskTitle completed={task.status === 'completed'}>{task.title}</TaskTitle>
+					<TaskCreator>Criada por: {controller.resolveAuthorLabel(task)}</TaskCreator>
+				</TaskInfo>
+
+				{canAct && (
+					<Stack direction="row" spacing={0.5}>
+						<Tooltip title="Editar">
+							<ActionButton
+								onClick={(e: React.MouseEvent) => {
+									e.stopPropagation();
+									controller.onTaskClick(task._id!);
+								}}>
+								<SysIcon name="edit" />
+							</ActionButton>
+						</Tooltip>
+						<Tooltip title="Excluir">
+							<ActionButton
+								onClick={(e: React.MouseEvent) => {
+									e.stopPropagation();
+									controller.onDeleteTask(task);
+								}}>
+								<SysIcon name="delete" />
+							</ActionButton>
+						</Tooltip>
+					</Stack>
+				)}
+			</TaskItem>
+		);
+	};
 
 	const estimatedOpenPages = controller.openPage + (controller.hasNextOpen ? 1 : 0);
 	const estimatedCompletedPages = controller.completedPage + (controller.hasNextCompleted ? 1 : 0);
+
+	const selectedTaskCanAct = selectedTask?._id ? (controller.permissions[selectedTask._id] ?? false) : false;
 
 	return (
 		<PageWrapper>
@@ -207,7 +215,7 @@ const TasksListView = () => {
 							</Tooltip>
 
 							<Stack direction="row" spacing={0.5} flexShrink={0}>
-								{controller.isOwnerOrAdmin(selectedTask) && (
+								{selectedTaskCanAct && (
 									<Tooltip title="Excluir tarefa">
 										<IconButton
 											size="small"
@@ -288,7 +296,7 @@ const TasksListView = () => {
 						</DetailPanelContent>
 
 						<DetailPanelFooter>
-							{controller.isOwnerOrAdmin(selectedTask) && (
+							{selectedTaskCanAct && (
 								<SysButton
 									fullWidth
 									variant="outlined"
