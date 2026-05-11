@@ -14,6 +14,15 @@ class TasksApi extends ProductBase<ITask> {
 			.find({ status }, { sort: { updatedAt: -1 }, limit })
 			.fetch();
 	}
+
+	async canActOnTask(taskId: string): Promise<boolean> {
+		try {
+			return await this.callMethodWithPromise('canActOnTask', { taskId });
+		} catch (error) {
+			console.error('Erro ao verificar permissão:', error);
+			return false;
+		}
+	}
 }
 
 export const tasksApi = new TasksApi();

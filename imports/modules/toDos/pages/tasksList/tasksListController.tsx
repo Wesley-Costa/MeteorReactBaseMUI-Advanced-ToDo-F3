@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTracker } from 'meteor/react-meteor-data';
 import { Meteor } from 'meteor/meteor';
@@ -27,6 +27,7 @@ interface ITasksListControllerContext {
 	onTaskCheckboxClick: (e: React.MouseEvent, id: string) => void;
 	resolveAssignedLabel: (task: ITask) => string;
 	resolveAuthorLabel: (task: ITask) => string;
+	permissions: Record<string, boolean>;
 }
 
 export const TasksListControllerContext = React.createContext<ITasksListControllerContext>(
@@ -42,6 +43,7 @@ const TasksListController = () => {
 	const [searchText, setSearchText] = useState<string>('');
 	const [openPage, setOpenPage] = useState(1);
 	const [completedPage, setCompletedPage] = useState(1);
+	const [permissions, setPermissions] = useState<Record<string, boolean>>({});
 
 	const handleSearchChange = useCallback((value: string) => {
 		setSearchText(value);
@@ -64,16 +66,12 @@ const TasksListController = () => {
 			{ skip: (completedPage - 1) * PAGE_SIZE, limit: PAGE_SIZE + 1 }
 		);
 
+		Meteor.subscribe('userprofile.getListOfusers');
+
 		const isReady = !!openSub && openSub.ready() && !!completedSub && completedSub.ready();
 
 		if (!isReady) {
-			return {
-				loading: true,
-				openTasks: [],
-				completedTasks: [],
-				hasNextOpen: false,
-				hasNextCompleted: false
-			};
+			return { loading: true, openTasks: [], completedTasks: [], hasNextOpen: false, hasNextCompleted: false };
 		}
 
 		const rawOpen = tasksApi.findByStatus('open', PAGE_SIZE + 1);
@@ -88,13 +86,42 @@ const TasksListController = () => {
 		};
 	}, [searchText, openPage, completedPage]);
 
-	const tasks = useMemo(() => [...openTasks, ...completedTasks], [openTasks, completedTasks]);
+
+	const allTasks = useMemo(() => [...openTasks, ...completedTasks], [openTasks, completedTasks]);
+
+	const allTaskIds = useMemo(
+		() => allTasks.map((t) => t._id).filter(Boolean).join(','),
+		[allTasks]
+	);
+
+	useEffect(() => {
+		let cancelled = false;
+
+		if (allTasks.length === 0) {
+			setPermissions({});
+			return;
+		}
+
+		const validTasks = allTasks.filter((t): t is ITask & { _id: string } => !!t._id);
+
+		Promise.all(
+			validTasks.map(async (task) => {
+				const canAct = await tasksApi.canActOnTask(task._id);
+				return [task._id, canAct] as const;
+			})
+		).then((entries) => {
+			if (!cancelled) setPermissions(Object.fromEntries(entries));
+		}).catch(() => {
+			if (!cancelled) setPermissions({});
+		});
+
+		return () => { cancelled = true; };
+	}, [allTaskIds]);
 
 	const onOpenPageChange = useCallback((page: number) => setOpenPage(Math.max(1, page)), []);
 	const onCompletedPageChange = useCallback((page: number) => setCompletedPage(Math.max(1, page)), []);
-	const onSearchChange = handleSearchChange;
 	const onAddTaskClick = useCallback(() => navigate('/tasks/create'), [navigate]);
-	const onTaskClick = useCallback((id: string) => navigate(`/tasks/edit/${id}`), [navigate]);
+	const onTaskClick = useCallback((id: string) => navigate('/tasks/edit', { state: { taskId: id } }), [navigate]);
 
 	const resolveAssignedLabel = useCallback((task: ITask): string => {
 		if (!task.assignedTo && !task.assignedToName) return 'Não atribuída';
@@ -110,6 +137,16 @@ const TasksListController = () => {
 	const onDeleteTask = useCallback(
 		(task: ITask) => {
 			if (!task?._id) return;
+
+			if (!permissions[task._id]) {
+				showNotification({
+					type: 'error',
+					title: 'Permissão negada',
+					message: 'Somente o criador ou administrador pode remover esta tarefa.',
+					showCloseButton: true
+				});
+				return;
+			}
 
 			setActionLoadingId(task._id);
 			tasksApi.remove({ _id: task._id }, (e: IMeteorError, r: any) => {
@@ -131,18 +168,18 @@ const TasksListController = () => {
 				});
 			});
 		},
-		[showNotification]
+		[permissions, showNotification]
 	);
+
+	const tasks = useMemo(() => [...openTasks, ...completedTasks], [openTasks, completedTasks]);
 
 	const onTaskCheckboxClick = useCallback(
 		(e: React.MouseEvent, id: string) => {
 			e.stopPropagation();
-
 			const task = tasks.find((t) => t._id === id);
 			if (!task) return;
 
 			const newStatus = task.status === 'completed' ? 'open' : 'completed';
-
 			setActionLoadingId(id);
 			tasksApi.update({ ...task, status: newStatus }, (e: IMeteorError) => {
 				setActionLoadingId(null);
@@ -172,13 +209,14 @@ const TasksListController = () => {
 			hasNextCompleted,
 			onOpenPageChange,
 			onCompletedPageChange,
-			onSearchChange,
+			onSearchChange: handleSearchChange,
 			onAddTaskClick,
 			onTaskClick,
 			onDeleteTask,
 			onTaskCheckboxClick,
 			resolveAssignedLabel,
-			resolveAuthorLabel
+			resolveAuthorLabel,
+			permissions
 		}),
 		[
 			openTasks,
@@ -192,13 +230,14 @@ const TasksListController = () => {
 			hasNextCompleted,
 			onOpenPageChange,
 			onCompletedPageChange,
-			onSearchChange,
+			handleSearchChange,
 			onAddTaskClick,
 			onTaskClick,
 			onDeleteTask,
 			onTaskCheckboxClick,
 			resolveAssignedLabel,
-			resolveAuthorLabel
+			resolveAuthorLabel,
+			permissions
 		]
 	);
 

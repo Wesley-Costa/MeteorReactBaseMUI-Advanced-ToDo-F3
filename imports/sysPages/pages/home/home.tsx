@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useState, Fragment } from 'react';
+import React, { useCallback, useContext, useState, Fragment, useEffect } from 'react';
 import { Meteor } from 'meteor/meteor';
 import { useTracker } from 'meteor/react-meteor-data';
 import { useNavigate } from 'react-router-dom';
@@ -12,11 +12,12 @@ import { SysLoading } from '/imports/ui/components/sysLoading/sysLoading';
 import { SysButton } from '/imports/ui/components/SimpleFormFields/SysButton/SysButton';
 
 const {
-	Container, Header, HeaderTitle, HeaderSubtitle, SectionWrapper, SectionLabel, SectionLabelTitle, ListContainer, 
-	RemainingListContainer, TaskListItem, TaskListItemIcon, TaskListItemButton, TaskSecondaryStack, TaskTitle, TaskCreatorText, 
-	TaskCreatorUnderline, TaskCheckbox, TaskActions, ActionButton, StateContainer, TaskModal, TaskModalHeader, TaskModalTitleRow, 
-	TaskModalTitle, TaskModalStatusChip, TaskModalMeta, TaskModalSection, TaskModalSectionLabel, TaskModalDescriptionBody, 
-	TaskModalDescriptionText, TaskModalInfoRow, TaskModalInfoLabel, TaskModalInfoAvatar, TaskModalInfoValue, TaskModalActions, 
+	Container, Header, HeaderTitle, HeaderSubtitle, SectionWrapper, SectionLabel,
+	SectionLabelTitle, ListContainer, RemainingListContainer, TaskListItem, TaskListItemIcon,
+	TaskListItemButton, TaskSecondaryStack, TaskTitle, TaskCreatorText, TaskCreatorUnderline,
+	TaskCheckbox, TaskActions, ActionButton, StateContainer, TaskModal, TaskModalHeader, TaskModalTitleRow,
+	TaskModalTitle, TaskModalStatusChip, TaskModalMeta, TaskModalSection, TaskModalSectionLabel, TaskModalDescriptionBody,
+	TaskModalDescriptionText, TaskModalInfoRow, TaskModalInfoLabel, TaskModalInfoAvatar, TaskModalInfoValue, TaskModalActions,
 	FooterSection, GoToTasksButton, GoToTasksIcon
 } = HomeStyles;
 
@@ -29,8 +30,6 @@ const resolveAssignedLabel = (task: ITask): string => {
 	return task.assignedToName || '';
 };
 
-const isTaskOwner = (task: ITask): boolean => task.createdBy === Meteor.userId();
-
 const getInitials = (name?: string): string => {
 	if (!name) return '?';
 	const parts = name.trim().split(' ').filter(Boolean);
@@ -41,7 +40,9 @@ const getInitials = (name?: string): string => {
 
 const formatDate = (date?: Date): string => {
 	if (!date) return '—';
-	return new Date(date).toLocaleString('pt-BR', {
+	const d = new Date(date);
+	if (isNaN(d.getTime())) return '—';
+	return d.toLocaleString('pt-BR', {
 		day: '2-digit',
 		month: '2-digit',
 		year: 'numeric',
@@ -57,6 +58,7 @@ const HomePage: React.FC = () => {
 	const [selectedTask, setSelectedTask] = useState<ITask | null>(null);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+	const [permissions, setPermissions] = useState<Record<string, boolean>>({});
 
 	const currentUser = useTracker(() => Meteor.user(), []);
 	const firstName = (() => {
@@ -72,6 +74,39 @@ const HomePage: React.FC = () => {
 			recentTasks: isReady ? tasksApi.find({}).fetch() : []
 		};
 	}, []);
+
+	const taskIds = recentTasks
+		.map((t) => t._id)
+		.filter(Boolean)
+		.join(',');
+
+	useEffect(() => {
+		let cancelled = false;
+
+		if (recentTasks.length === 0) {
+			setPermissions({});
+			return;
+		}
+
+		const validTasks = recentTasks.filter((t): t is ITask & { _id: string } => !!t._id);
+
+		Promise.all(
+			validTasks.map(async (task) => {
+				const canAct = await tasksApi.canActOnTask(task._id);
+				return [task._id, canAct] as const;
+			})
+		)
+			.then((entries) => {
+				if (!cancelled) setPermissions(Object.fromEntries(entries));
+			})
+			.catch(() => {
+				if (!cancelled) setPermissions({});
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [taskIds]);
 
 	const mostRecentTask = recentTasks[0] ?? null;
 	const remainingTasks = recentTasks.slice(1);
@@ -91,56 +126,63 @@ const HomePage: React.FC = () => {
 	const handleEditTask = useCallback(
 		(task: ITask) => {
 			if (!task?._id) return;
-			if (task.createdBy && task.createdBy !== Meteor.userId()) {
+
+			if (!permissions[task._id]) {
 				showNotification({
 					type: 'error',
 					title: 'Permissão negada',
-					message: 'Somente o criador pode editar esta tarefa.'
+					message: 'Somente o criador ou administrador pode editar esta tarefa.'
 				});
 				return;
 			}
-			navigate(`/tasks/edit/${task._id}`);
+
+			navigate('/tasks/edit', { state: { taskId: task._id } });
 		},
-		[navigate, showNotification]
+		[navigate, showNotification, permissions]
 	);
 
 	const handleDeleteTask = useCallback(
 		(task: ITask) => {
 			if (!task?._id) return;
-			if (task.createdBy && task.createdBy !== Meteor.userId()) {
+
+			if (!permissions[task._id]) {
 				showNotification({
 					type: 'error',
 					title: 'Permissão negada',
-					message: 'Somente o criador pode remover esta tarefa.'
+					message: 'Somente o criador ou administrador pode remover esta tarefa.',
+						showCloseButton: true
 				});
 				return;
 			}
+
 			if (selectedTask?._id === task._id) {
 				setIsModalOpen(false);
 				setSelectedTask(null);
 			}
-			setActionLoadingId(task._id!);
+
+			setActionLoadingId(task._id);
 			tasksApi.remove({ _id: task._id }, (e: Meteor.Error) => {
 				setActionLoadingId(null);
 				if (e) {
 					showNotification({
 						type: 'error',
 						title: 'Erro ao excluir',
-						message: e.reason || 'Falha ao excluir a tarefa'
+						message: e.reason || 'Falha ao excluir a tarefa',
+						showCloseButton: true
 					});
 					return;
 				}
 				showNotification({ type: 'success', title: 'Tarefa excluída', message: 'Tarefa removida com sucesso' });
 			});
 		},
-		[selectedTask, showNotification]
+		[selectedTask, showNotification, permissions]
 	);
 
 	const handleToggleTaskStatus = useCallback(
 		(task: ITask) => {
 			if (!task?._id) return;
 			const newStatus = task.status === 'completed' ? 'open' : 'completed';
-			setActionLoadingId(task._id!);
+			setActionLoadingId(task._id);
 			tasksApi.update({ ...task, status: newStatus }, (e: Meteor.Error | undefined) => {
 				setActionLoadingId(null);
 				if (e) {
@@ -163,37 +205,41 @@ const HomePage: React.FC = () => {
 		[showNotification]
 	);
 
-	const renderTaskActions = (task: ITask, isLoading: boolean) => (
-		<TaskActions>
-			<Tooltip title="Editar">
-				<span>
-					<ActionButton
-						size="small"
-						disabled={isLoading}
-						onClick={(e) => {
-							e.stopPropagation();
-							handleEditTask(task);
-						}}>
-						<SysIcon name="edit" />
-					</ActionButton>
-				</span>
-			</Tooltip>
+	const renderTaskActions = (task: ITask, isLoading: boolean) => {
+		const canAct = task._id ? (permissions[task._id] ?? false) : false;
+		if (!canAct) return null;
 
-			<Tooltip title="Excluir">
-				<span>
-					<ActionButton
-						size="small"
-						disabled={isLoading}
-						onClick={(e) => {
-							e.stopPropagation();
-							handleDeleteTask(task);
-						}}>
-						<SysIcon name="delete" />
-					</ActionButton>
-				</span>
-			</Tooltip>
-		</TaskActions>
-	);
+		return (
+			<TaskActions>
+				<Tooltip title="Editar">
+					<span>
+						<ActionButton
+							size="small"
+							disabled={isLoading}
+							onClick={(e) => {
+								e.stopPropagation();
+								handleEditTask(task);
+							}}>
+							<SysIcon name="edit" />
+						</ActionButton>
+					</span>
+				</Tooltip>
+				<Tooltip title="Excluir">
+					<span>
+						<ActionButton
+							size="small"
+							disabled={isLoading}
+							onClick={(e) => {
+								e.stopPropagation();
+								handleDeleteTask(task);
+							}}>
+							<SysIcon name="delete" />
+						</ActionButton>
+					</span>
+				</Tooltip>
+			</TaskActions>
+		);
+	};
 
 	const renderTaskItem = (task: ITask, idx: number) => {
 		const isCompleted = task.status === 'completed';
@@ -201,9 +247,7 @@ const HomePage: React.FC = () => {
 
 		return (
 			<Fragment key={task._id || idx}>
-				<TaskListItem
-					secondaryAction={isTaskOwner(task) ? renderTaskActions(task, isLoading) : undefined}
-					disablePadding>
+				<TaskListItem secondaryAction={renderTaskActions(task, isLoading)} disablePadding>
 					<TaskListItemIcon>
 						<TaskCheckbox
 							completed={isCompleted}
@@ -213,7 +257,6 @@ const HomePage: React.FC = () => {
 							}}
 						/>
 					</TaskListItemIcon>
-
 					<TaskListItemButton onClick={() => handleOpenTask(task)}>
 						<ListItemText
 							primary={<TaskTitle completed={isCompleted}>{task.title || 'Sem título'}</TaskTitle>}
@@ -228,7 +271,6 @@ const HomePage: React.FC = () => {
 						/>
 					</TaskListItemButton>
 				</TaskListItem>
-
 				<Divider component="li" />
 			</Fragment>
 		);
@@ -242,7 +284,7 @@ const HomePage: React.FC = () => {
 		const creatorInitials = getInitials(creatorLabel === 'Você' ? firstName : creatorLabel);
 		const assignedLabel = resolveAssignedLabel(selectedTask);
 		const assigneeInitials = getInitials(assignedLabel === 'Você' ? firstName : assignedLabel);
-		const isOwner = isTaskOwner(selectedTask);
+		const canAct = selectedTask._id ? (permissions[selectedTask._id] ?? false) : false;
 
 		return (
 			<TaskModal open={isModalOpen} onClose={handleCloseModal} maxWidth={false}>
@@ -256,7 +298,6 @@ const HomePage: React.FC = () => {
 								{isCompleted ? 'Concluída' : 'Em aberto'}
 							</TaskModalStatusChip>
 						</TaskModalTitleRow>
-
 						<TaskModalMeta>
 							{selectedTask._id ? `Tarefa #${selectedTask._id.slice(-5).toUpperCase()}` : 'Tarefa'}
 						</TaskModalMeta>
@@ -301,7 +342,7 @@ const HomePage: React.FC = () => {
 				</DialogContent>
 
 				<TaskModalActions>
-					{isOwner && (
+					{canAct && (
 						<SysButton
 							variant="outlined"
 							size="small"

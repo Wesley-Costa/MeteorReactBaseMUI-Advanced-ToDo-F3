@@ -1,7 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import SysForm from '../../../ui/components/sysForm/sysForm';
 import SysTextField from '../../../ui/components/sysFormFields/sysTextField/sysTextField';
@@ -43,7 +42,10 @@ const SignUpPage: React.FC = () => {
 	const strength = getPasswordStrength(passwordValue);
 	const strengthInfo = getPasswordStrengthLabel(strength);
 
-	const { Container, Content, FormContainer, FormWrapper, PasswordStrengthBar } = SignUpStyles;
+	const {
+		Container, Content, FormContainer, FormWrapper, PasswordStrengthBar, PasswordStrengthWrapper, 
+		PasswordStrengthLabel, Title, TitleBracket, Logo, LinkButtonEnd
+	} = SignUpStyles;
 
 	useEffect(() => {
 		if (user) navigate('/');
@@ -66,14 +68,14 @@ const SignUpPage: React.FC = () => {
 					type: 'error',
 					title: 'Erro ao criar conta',
 					message: err.reason || err.message || 'Não foi possível realizar o cadastro. Tente novamente.',
-					showCloseButton: true,
+					showCloseButton: true
 				});
 			} else {
 				showNotification({
 					type: 'success',
 					title: 'Cadastro realizado!',
 					message: 'Sua conta foi criada com sucesso. Verifique seu email para ativá-la.',
-					showCloseButton: true,
+					showCloseButton: true
 				});
 				navigate('/signin');
 			}
@@ -85,35 +87,20 @@ const SignUpPage: React.FC = () => {
 	return (
 		<Container>
 			<Content>
-				<Typography variant="h1" display="inline-flex" gap={1}>
-					<Typography variant="inherit" color={(theme) => theme.palette.sysText?.tertiary}>
-						{'{'}
-					</Typography>
-					ToDo List 
-					<Typography variant="inherit" color="sysText.tertiary">
-						{'}'}
-					</Typography>
-				</Typography>
+				<Title variant="h1">
+					<TitleBracket variant="inherit">{'{'}</TitleBracket>
+					ToDo List
+					<TitleBracket variant="inherit">{'}'}</TitleBracket>
+				</Title>
 
 				<FormContainer>
-					<Typography variant="h5">Criar conta</Typography>
+					<Typography variant="h4">Criar conta</Typography>
 
 					<SysForm schema={signUpSchema} onSubmit={handleSubmit} debugAlerts={false}>
 						<FormWrapper>
-							<SysTextField
-								name="username"
-								label="Nome"
-								fullWidth
-								placeholder="Digite seu nome"
-							/>
+							<SysTextField name="username" label="Nome" fullWidth placeholder="Digite seu nome" />
 
-							<SysTextField
-								name="email"
-								label="Email"
-								fullWidth
-								placeholder="Digite seu email"
-								type="email"
-							/>
+							<SysTextField name="email" label="Email" fullWidth placeholder="Digite seu email" type="email" />
 
 							<SysTextField
 								name="password"
@@ -128,15 +115,15 @@ const SignUpPage: React.FC = () => {
 							/>
 
 							{passwordValue.length > 0 && (
-								<Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+								<PasswordStrengthWrapper>
 									<PasswordStrengthBar strength={strength} />
-									<Typography variant="caption" color={strengthInfo.color} alignSelf="flex-end">
+									<PasswordStrengthLabel variant="caption" color={strengthInfo.color}>
 										{strengthInfo.label}
-									</Typography>
+									</PasswordStrengthLabel>
 									<Typography variant="caption" color="text.secondary">
 										Use 8+ caracteres, letras maiúsculas, minúsculas, números e símbolos.
 									</Typography>
-								</Box>
+								</PasswordStrengthWrapper>
 							)}
 
 							<SysTextField
@@ -152,9 +139,9 @@ const SignUpPage: React.FC = () => {
 								}}
 							/>
 
-							<Button variant="text" sx={{ alignSelf: 'flex-end' }} onClick={handleSignIn}>
+							<LinkButtonEnd variant="text" onClick={handleSignIn}>
 								<Typography variant="link">Já tenho uma conta</Typography>
-							</Button>
+							</LinkButtonEnd>
 
 							<Box />
 
@@ -165,7 +152,6 @@ const SignUpPage: React.FC = () => {
 					</SysForm>
 				</FormContainer>
 
-				<Box component="img" src="/images/wireframe/synergia-logo.svg" sx={{ width: '100%', maxWidth: '400px' }} />
 			</Content>
 		</Container>
 	);
